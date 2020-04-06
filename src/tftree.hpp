@@ -12,15 +12,47 @@
 #define SRC_TFTREE_HPP_
 
 #include <memory>
+#include <type_traits>
 
 namespace tft {
+
 
 template<class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
 class TwoFourTree {
 public:
 	typedef Key key_type;
 
-	TwoFourTree() = default;
+	/* CONSTRUCTORS */
+
+	// default
+	TwoFourTree();
+	explicit TwoFourTree(const Compare &comp, const Allocator &alloc =
+			Allocator());
+	explicit TwoFourTree(const Allocator &alloc);
+
+	// using begin and end iterator
+	template<class InputIt>
+	TwoFourTree(InputIt first, InputIt last, const Compare &comp = Compare(),
+			const Allocator &alloc = Allocator());
+	template<class InputIt>
+	TwoFourTree(InputIt first, InputIt last, const Allocator &alloc);
+
+	// copy constructors
+	TwoFourTree(const TwoFourTree &other);
+	TwoFourTree(const TwoFourTree &other, const Allocator &alloc);
+
+	// move constructors
+	TwoFourTree(TwoFourTree &&other);
+	TwoFourTree(TwoFourTree &&other, const Allocator &alloc);
+
+	// initializer lists
+	TwoFourTree(std::initializer_list<typename Allocator::value_type> init,
+			const Compare &comp = Compare(), const Allocator &alloc =
+					Allocator());
+	TwoFourTree(std::initializer_list<typename Allocator::value_type> init,
+			const Allocator &alloc);
+
+	 /* DESTRUCTOR */
 	~TwoFourTree() = default;
 
     typedef Compare key_compare;
@@ -31,7 +63,7 @@ public:
 	typedef typename Allocator::value_type value_type;
 	typedef typename Allocator::reference reference;
 	typedef typename Allocator::const_reference const_reference;
-	typedef typename Allocator::diference_type difference_type;
+	typedef typename Allocator::difference_type difference_type;
 	typedef typename Allocator::size_type size_type;
 
 	// Iterator
@@ -61,7 +93,7 @@ public:
 		iterator operator--(int); //optional
 		iterator& operator+=(size_type); //optional
 		iterator operator+(size_type) const; //optional
-		friend iterator operator+(size_type, const iterator&); //optional
+//		friend iterator operator+ <>(size_type, const iterator&); //optional
 		iterator& operator-=(size_type); //optional
 		iterator operator-(size_type) const; //optional
 		difference_type operator-(iterator) const; //optional
@@ -97,7 +129,7 @@ public:
 		const_iterator operator--(int); //optional
 		const_iterator& operator+=(size_type); //optional
 		const_iterator operator+(size_type) const; //optional
-		friend const_iterator operator+(size_type, const const_iterator&); //optional
+//		friend const_iterator operator+ <>(size_type, const const_iterator&); //optional
 		const_iterator& operator-=(size_type); //optional
 		const_iterator operator-(size_type) const; //optional
 		difference_type operator-(const_iterator) const; //optional
@@ -185,20 +217,16 @@ public:
 	iterator erase(const_iterator pos); // c++11
 	iterator erase(iterator pos); // c++17
 	iterator erase(const_iterator first, const_iterator last);
-	size_type erase(const key_type &key); // todo: key_type vs value_type?
+	size_type erase(const key_type &key);
 
 	// swap
 	// exchange the contents of the container with those of other
-	// todo: template TwoFourTree with Compare class and use c++17 version
-	void swap(TwoFourTree &other);
-//	void swap (set& other) noexcept
-//				(std::allocator_traits<Allocator>::is_always_equal::value && std::is_no_throw_swappable<Compare>::value); // c++ 17
+	void swap (TwoFourTree& other) noexcept
+				(std::allocator_traits<Allocator>::is_always_equal::value && std::is_nothrow_swappable<Compare>::value);
 
-	// c++17: extract
 //	node_type extract(const_iterator position);
 //	node_type extract (const key_type& x);
 
-	// c++17: merge
 	// attempt to extract ("splice") each element in source and insert into *this using *this's Compare
 	// TODO consider also supplying merge taking std::set
 	template<class C2>
