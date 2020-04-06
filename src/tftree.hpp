@@ -257,7 +257,27 @@ public:
 
 } // namespace tft
 
-template<class Key, class A = std::allocator<Key> >
-void swap(tft::TwoFourTree<Key, A>&, tft::TwoFourTree<Key, A>&);
+template <class Key, class Compare, class Alloc>
+bool operator== (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+template <class Key, class Compare, class Alloc>
+bool operator!= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+template <class Key, class Compare, class Alloc>
+bool operator< (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+template <class Key, class Compare, class Alloc>
+bool operator<= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+template <class Key, class Compare, class Alloc>
+bool operator> (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+template <class Key, class Compare, class Alloc>
+bool operator>= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
+// TODO: consider implementing three way compare
+//template <class Key, class Compare, class Alloc>
+//? operator<=> (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
 
 #endif /* SRC_TFTREE_HPP_ */
