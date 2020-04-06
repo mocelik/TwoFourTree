@@ -15,11 +15,16 @@
 
 namespace tft {
 
-template<class T, class Allocator = std::allocator<T>>
+template<class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
 class TwoFourTree {
 public:
+	typedef Key key_type;
+
 	TwoFourTree() = default;
 	~TwoFourTree() = default;
+
+    typedef Compare key_compare;
+    typedef Compare value_compare;
 
 	// Allocator
 	typedef Allocator allocator_type;
@@ -105,14 +110,154 @@ public:
 	typedef std::reverse_iterator<iterator> reverse_iterator; //optional
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator; //optional
 
-protected:
-	Allocator the_allocator;
+	/***** MEMBER FUNCTIONS *****/
 
+	/* ITERATOR FUNCTIONS */
+
+	/**
+	 * begin() -> return an iterator to the beginning
+	 */
+	iterator begin() noexcept;
+	const_iterator begin() const noexcept;
+	const_iterator cbegin() const noexcept;
+
+	/**
+	 * end() -> return an iterator to an object past the end
+	 */
+	iterator end() noexcept;
+	const_iterator end() const noexcept;
+	const_iterator cend() const noexcept;
+
+	/**
+	 * rbegin() -> return an iterator to the first element of the reversed set
+	 */
+	reverse_iterator rbegin() noexcept;
+	const_reverse_iterator rbegin() const noexcept;
+	const_reverse_iterator crbegin() const noexcept;
+
+	/**
+	 * rend() -> return an iterator to the element following the last element of the reversed set.
+	 */
+	reverse_iterator rend() noexcept;
+	const_reverse_iterator rend() const noexcept;
+	const_reverse_iterator crend() const noexcept;
+
+	/* CAPACITY FUNCTIONS */
+
+	// true if empty, false otherwise
+	[[nodiscard]] bool empty() const noexcept; // c++20
+
+	// Returns the number of elements in the container (std::distance(begin(), end()))
+	size_type size() const noexcept;
+
+	// Returns the maximum number of elements possible due to system or library implementation requirements
+	// std::distance(begin(), end()) for the largest possible container
+	size_type max_size() const noexcept;
+
+	/* MODIFIER FUNCTIONS */
+
+	// clear
+	// erases all elements from the container. after this call, size() returns zero.
+	void clear() noexcept;
+
+	// insert
+	// inserts elements into the container, if the container doesn't already contain an element with an equivalent key
+	std::pair<iterator, bool> insert(value_type &&value);
+	iterator insert(const_iterator hint, const value_type &value);
+	iterator insert(const_iterator hint, value_type &&value);
+	template<class InputIt> void insert(InputIt first, InputIt last);
+	void insert(std::initializer_list<value_type> ilist);
+//	insert_return_type insert(node_type&& nh); // c++17
+//	iterator insert(const_iterator hint, node_type&& nh); // c++17
+
+	// emplace
+	// insert a new element into the container constructed in-place with the given args
+	template<class ... Args>
+	std::pair<iterator, bool> emplace(Args &&... args);
+
+	// emplace_hint
+	// insert a new element into the container as close as possibel to the position just before hint
+	template<class ... Args>
+	iterator emplace_hint(const_iterator hint, Args &&...args);
+
+	// erase
+	// removes the element at pos
+	iterator erase(const_iterator pos); // c++11
+	iterator erase(iterator pos); // c++17
+	iterator erase(const_iterator first, const_iterator last);
+	size_type erase(const key_type &key); // todo: key_type vs value_type?
+
+	// swap
+	// exchange the contents of the container with those of other
+	// todo: template TwoFourTree with Compare class and use c++17 version
+	void swap(TwoFourTree &other);
+//	void swap (set& other) noexcept
+//				(std::allocator_traits<Allocator>::is_always_equal::value && std::is_no_throw_swappable<Compare>::value); // c++ 17
+
+	// c++17: extract
+//	node_type extract(const_iterator position);
+//	node_type extract (const key_type& x);
+
+	// c++17: merge
+	// attempt to extract ("splice") each element in source and insert into *this using *this's Compare
+	// TODO consider also supplying merge taking std::set
+	template<class C2>
+	void merge(TwoFourTree<Key, C2, Allocator> &source);
+	template<class C2>
+	void merge(TwoFourTree<Key, C2, Allocator> &&source);
+
+	/* LOOKUP FUNCTIONS */
+
+	// count
+	// returns the number of elements with key that compares equivalent to the specified argument
+	// which is either 1 or 0 since this container does not allow duplicates
+	size_type count(const Key &key) const;
+	template<class K> size_type count(const K &x) const;
+
+	// find
+	iterator find(const Key &key);
+	const_iterator find(const Key &key) const;
+	template<class K> iterator find(const K &x);
+	template<class K> const_iterator find(const K &x) const;
+
+	// contains
+	// true if there is an element with key equivalent to x
+	bool contains (const Key& key) const;
+	template<class K> bool contains (const K& x) const;
+
+	// equal_range
+	std::pair<iterator, iterator> equal_range(const Key& x);
+	std::pair<const_iterator, const_iterator> equal_range (const Key& x) const;
+	template<class K> std::pair<iterator, iterator> equal_range(const K &x);
+	template<class K> std::pair<const_iterator, const_iterator> equal_range(const K &x) const;
+
+	// lower_bound
+	// returns an iterator pointing to the first element that is not less than the key
+	iterator lower_bound (const Key& x);
+	const_iterator lower_bound (const Key&x ) const;
+	template <class K> iterator lower_bound(const K&x);
+	template <class K> const_iterator lower_bound(const K&x) const;
+
+	// upper_bound
+	// returns an iterator pointing to the first element that is greater than key
+	iterator upper_bound (const Key& x);
+	const_iterator upper_bound (const Key&x ) const;
+	template <class K> iterator upper_bound(const K&x);
+	template <class K> const_iterator upper_bound(const K&x) const;
+
+	// value_comp, key_comp
+	// return function object that compares the values
+	value_compare value_comp() const;
+	key_compare key_comp() const;
+
+	protected:
+	Allocator the_allocator;
+	Compare  the_comparator;
 };
 
 } // namespace tft
 
-template<class T, class A = std::allocator<T> >
-void swap(tft::TwoFourTree<T, A>&, tft::TwoFourTree<T, A>&);
+template<class Key, class A = std::allocator<Key> >
+void swap(tft::TwoFourTree<Key, A>&, tft::TwoFourTree<Key, A>&);
 
 #endif /* SRC_TFTREE_HPP_ */
