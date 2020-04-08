@@ -18,7 +18,7 @@ TEST_FILES := $(addprefix $(TEST_FOLDER)/, $(TEST_FILES))
 SRC_FILES := main.cpp
 SRC_FILES := $(addprefix $(SRC_FOLDER)/,$(SRC_FILES))
 
-CXX = g++
+CXX = clang++
 CXXFLAGS = -Wall -g -std=c++17
 
 ###### TARGETS ########
