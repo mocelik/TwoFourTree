@@ -18,6 +18,8 @@ TEST_FILES := $(addprefix $(TEST_FOLDER)/, $(TEST_FILES))
 SRC_FILES := main.cpp
 SRC_FILES := $(addprefix $(SRC_FOLDER)/,$(SRC_FILES))
 
+CXX = g++
+CXXFLAGS = -Wall -g -std=c++17
 
 ###### TARGETS ########
 
@@ -30,10 +32,10 @@ test:
 	$(TEST_EXE)
 
 compile_src: $(SRC_FILES)
-	g++ $(SRC_FILES) -o $(MAIN_EXE)
+	$(CXX) $(CXXFLAGS) $(SRC_FILES) -o $(MAIN_EXE)
 	
 compile_test: $(TEST_FILES)
-	g++ $(TEST_FILES) -o $(TEST_EXE)
+	$(CXX) $(CXXFLAGS) $(TEST_FILES) -o $(TEST_EXE)
 
 clean:
 	rm $(BIN_FOLDER)/*
