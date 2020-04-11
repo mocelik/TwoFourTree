@@ -396,10 +396,70 @@ void TwoFourTree<K,C,A>::print() const{
 	std::cout << ss.str();
 }
 
+/**
+ * Inserts a value into the tree
+ * TODO: insertion logic for overflow
+ * TODO: Return correct iterato
+ */
+template<class K, class C, class A>
+std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree<K,C,A>::value_type &&value){
+
+	if (!root_) {
+		root_.reset(new Node(nullptr));
+		root_->addValue(std::move(value));
+		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
+	}
+
+	Node* currentNode = root_.get();
+
+	// Keep going down the tree until a leaf node is found. We always try to insert into leaf node initially.
+	while (!currentNode->isLeaf()) {
+
+		for (unsigned int i = 0; i < currentNode->num_keys_; i++) { // iterate over each key / child
+			if (value < currentNode->keys_[i]) {
+				if (!currentNode->children_[i]) { // if child doesn't exist yet
+					Node * newNode = new Node(currentNode);
+					currentNode->children_[i].reset(newNode); // create child
+				}
+				currentNode = currentNode->children_[i].get();
+				goto foundCorrectChild; // sue me
+
+			} else if (value == currentNode->keys_[i]) {
+				return std::make_pair(TwoFourTree<K, C, A>::iterator(), false);
+			}
+		}
+
+		// if we make it here then value is greater than everything in node. Next node is to the right.
+		{
+			const int rightmost_child_idx = currentNode->num_keys_;
+			if (!currentNode->children_[rightmost_child_idx]) { // if child doesn't exist yet
+				Node *newNode = new Node(currentNode);
+				currentNode->children_[rightmost_child_idx].reset(newNode); // create child
+			}
+			currentNode = currentNode->children_[rightmost_child_idx].get();
+		}
+
+	foundCorrectChild:
+		continue;
+	}
+
+	if (!currentNode->isFull()) {
+		currentNode->addValue(std::move(value));
+		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
+	} else {
+		// overflow
+		// need to split one node into two (or three if parent doesn't exist yet)
+		return std::make_pair(TwoFourTree<K,C,A>::iterator(), false);
+	}
+}
+
 template<class K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 
 	if (isFull()) // TODO: overflow
+		return false;
+
+	if (!isLeaf()) // not sure how to handle children
 		return false;
 
 	// find the index to put the value in
@@ -410,7 +470,7 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 	}
 
 	// move the other values out of the way
-	for (int k = kMaxNumKeys-1; k > idx; k--) {
+	for (int k = num_keys_-1; k > idx; k--) {
 		keys_[k] = std::move(keys_[k - 1]);
 	}
 	keys_[idx] = std::move(value);

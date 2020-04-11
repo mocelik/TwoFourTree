@@ -16,10 +16,14 @@ TEST_CASE( "Inserting", "[insert]" ) {
 	tft::TwoFourTree<int> tree;
 
 	std::cout << "begin inserting.\n";
-//	tree.insert(0);
-//	tree.insert(1);
-//	tree.insert(2);
+	REQUIRE(tree.insert(0).second);
+	REQUIRE(tree.insert(1).second);
+	REQUIRE(tree.insert(2).second);
 	std::cout << "done inserting.\n";
 	tree.print();
+
+	SECTION("Simple overflow") {
+		REQUIRE(tree.insert(3).second);
+	}
 }
 
