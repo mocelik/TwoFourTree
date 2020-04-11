@@ -282,6 +282,9 @@ public:
 	value_compare value_comp() const;
 	key_compare key_comp() const;
 
+	// debug
+	void print() const;
+
 	protected:
 	/**
 	 * The internal data structure
@@ -328,6 +331,69 @@ public:
 template<class Key, class Compare, class Allocator>
 TwoFourTree<Key, Compare, Allocator>::TwoFourTree() : root_(nullptr){
 	// intentionally unimplemented (yet)
+}
+
+template<class K, class C, class A>
+void TwoFourTree<K,C,A>::print() const{
+	Node end_of_level(nullptr);
+	Node null_node(nullptr);
+	Node children_end(nullptr);
+
+	std::stringstream ss;
+
+	/*
+	 * Create a deque to hold the node values
+	 * It contains either:
+	 * 		1. A node with real data
+	 * 		2. A node indicating the end of that level
+	 * 		3. An empty node (e.g. 4th child of node with 2 elements)
+	 */
+	std::deque<Node*> nodes_to_be_printed;
+
+	// first print the root node
+	if (root_)
+		nodes_to_be_printed.push_back(root_.get());
+	nodes_to_be_printed.push_back(&end_of_level);
+	nodes_to_be_printed.push_back(&children_end);
+
+	while (!nodes_to_be_printed.empty()) {
+		Node *node = nodes_to_be_printed.front();
+		nodes_to_be_printed.pop_front();
+
+		if (node == &end_of_level) { // when we come across this, we know we reached the end of this line
+			ss << "\n"; // print newline
+			nodes_to_be_printed.push_back(&end_of_level); // put it back in so we know for the next iteration
+			if (nodes_to_be_printed.front() == &end_of_level) // check if there will even be a next iteration
+				break; // if there isn't then we've traversed the entire node
+			else
+				continue;
+		}
+
+		if (node == &null_node) {
+			ss << "null:";
+			continue;
+		}
+
+		if (node == &children_end) {
+			ss << "|";
+			continue;
+		}
+
+		for (unsigned int i=0; i < node->kMaxNumKeys -1; i++)
+			ss << node->keys_[i] << ",";
+		ss << node->keys_[node->kMaxNumKeys-1] << ":";
+
+		for (unsigned int i=0; i < node->kMaxNumChildren; i++) {
+			if (node->children_[i])
+				nodes_to_be_printed.push_back(node->children_[i].get());
+			else
+				nodes_to_be_printed.push_back(&null_node);
+		}
+
+		nodes_to_be_printed.push_back(&children_end);
+	} // end loop
+
+	std::cout << ss.str();
 }
 
 template<class K, class C, class A>

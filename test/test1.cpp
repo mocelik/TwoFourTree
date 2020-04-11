@@ -20,5 +20,6 @@ TEST_CASE( "Inserting", "[insert]" ) {
 //	tree.insert(1);
 //	tree.insert(2);
 	std::cout << "done inserting.\n";
+	tree.print();
 }
 
