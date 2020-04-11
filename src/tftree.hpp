@@ -13,6 +13,8 @@
 
 #include <memory>
 #include <type_traits>
+#include <forward_list>
+#include <algorithm> // sort
 
 #include <deque> // debug / print
 #include <sstream>
@@ -297,8 +299,8 @@ public:
 		static constexpr const int kMaxNumKeys = 3;
 		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
 		int num_keys_ { 0 };
-		std::array<Key, kMaxNumKeys> keys_;
-		std::array<std::unique_ptr<Node>, kMaxNumChildren> children_;
+		std::forward_list<Key> keys_;
+		std::forward_list<std::unique_ptr<Node>> children_;
 		Node *parent_;
 
 		explicit Node(Node * parent) :parent_(parent)
@@ -309,6 +311,7 @@ public:
 		bool isLeaf();
 
 		bool addValue(Key&& value);
+		bool addOverflow(Key&& up, Key&& right);
 
 		friend TwoFourTree;
 	};
@@ -415,23 +418,31 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 	// Keep going down the tree until a leaf node is found. We always try to insert into leaf node initially.
 	while (!currentNode->isLeaf()) {
 
-		for (unsigned int i = 0; i < currentNode->num_keys_; i++) { // iterate over each key / child
-			if (value < currentNode->keys_[i]) {
-				if (!currentNode->children_[i]) { // if child doesn't exist yet
+		auto it = currentNode->keys_.begin();
+		auto end = currentNode->keys_.end();
+		auto childIt = currentNode->children_.begin();
+		while (it != end) {
+			if (value < *it) {
+				if (!(*childIt)) { // if child doesn't exist yet
 					Node * newNode = new Node(currentNode);
-					currentNode->children_[i].reset(newNode); // create child
+					childIt->reset(newNode); // create child
 				}
-				currentNode = currentNode->children_[i].get();
+				currentNode = childIt->get();
 				goto foundCorrectChild; // sue me
 
-			} else if (value == currentNode->keys_[i]) {
+			} else if (value == *it) {
 				return std::make_pair(TwoFourTree<K, C, A>::iterator(), false);
 			}
+			++it;
+			++childIt;
 		}
 
 		// if we make it here then value is greater than everything in node. Next node is to the right.
 		{
 			const int rightmost_child_idx = currentNode->num_keys_;
+			auto it = currentNode->children_.begin();
+			for (int i=0; i < rightmost_child_idx; i++)
+				++it; // incomplete, about to undo everything
 			if (!currentNode->children_[rightmost_child_idx]) { // if child doesn't exist yet
 				Node *newNode = new Node(currentNode);
 				currentNode->children_[rightmost_child_idx].reset(newNode); // create child
@@ -449,7 +460,34 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 	} else {
 		// overflow
 		// need to split one node into two (or three if parent doesn't exist yet)
-		return std::make_pair(TwoFourTree<K,C,A>::iterator(), false);
+
+		// two smallest values stay in node
+		// 3rd value goes up to parent
+		// 4th value goes to neighbour on right
+
+		// sort the 4 values
+		assert (Node::kMaxNumKeys == 3);
+		std::array<Node*, Node::kMaxNumKeys+1> ar;
+		for (int i=0; i < Node::kMaxNumKeys; i++) {
+			ar[i] = &(currentNode->keys_[i]);
+		}
+		ar[Node::kMaxNumKeys] = &(value);
+		std::sort(ar.begin(), ar.end(), [](Node* a, Node* b) {return *a < *b;});
+
+		currentNode->keys_[0] = std::move(ar[0]);
+		currentNode->keys_[1] = std::move(ar[1]);
+		K&& thirdValue = std::move(ar[3]);
+		K&& fourthValue = std::move(ar[4]);
+
+		if (currentNode->parent_ == nullptr) {
+			Node *parent = new Node(nullptr);
+			currentNode->parent_ = parent;
+			parent->children_[0].reset(currentNode);
+		}
+		Node *parent = currentNode->parent_;
+		bool rc = parent->addOverflow(std::move(thirdValue), std::move(fourthValue));
+
+		return std::make_pair(TwoFourTree<K,C,A>::iterator(), rc);
 	}
 }
 
@@ -474,6 +512,36 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 		keys_[k] = std::move(keys_[k - 1]);
 	}
 	keys_[idx] = std::move(value);
+	num_keys_++;
+	return true;
+}
+
+/**
+ * addOverflow is called by the child on the parent
+ * So this function is in the parent's context
+ *
+ * up is meant for this node, right is meant for the right neighbour
+ * right > up
+ */
+template<class K, class C, class A>
+bool TwoFourTree<K,C,A>::Node::addOverflow(K&& up, K&& right){
+	if (isFull())
+		return false; // TODO: Cascaded overflow
+
+	// find the index to put the value in
+	int idx;
+	for (idx = 0; idx < num_keys_; idx++) {
+		if (keys_[idx] > up)
+			break;
+	}
+
+	// move the other values out of the way
+	for (int k = num_keys_ - 1; k > idx; k--) {
+		keys_[k] = std::move(keys_[k - 1]);
+		children_[k + 1] = std::move(children_[k]);
+	}
+	keys_[idx] = std::move(up);
+	children_[idx + 1]->addValue(std::move(right));
 	num_keys_++;
 	return true;
 }
