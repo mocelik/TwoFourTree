@@ -9,18 +9,16 @@
  */
 
 #include "catch.hpp"
+#include "../src/tftree.hpp"
 
-TEST_CASE( "Sample test case", "[tmp]" ) {
+TEST_CASE( "Inserting", "[insert]" ) {
 
-    int i = 0;
+	tft::TwoFourTree<int> tree;
 
-    REQUIRE( i == 0 );
-
-    SECTION( "first section" ) {
-        REQUIRE( i == 0 );
-    }
-    SECTION( "second section" ) {
-        REQUIRE( i == 0 );
-        REQUIRE( i == 1 );
-    }
+	std::cout << "begin inserting.\n";
+//	tree.insert(0);
+//	tree.insert(1);
+//	tree.insert(2);
+	std::cout << "done inserting.\n";
 }
+

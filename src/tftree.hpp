@@ -14,6 +14,10 @@
 #include <memory>
 #include <type_traits>
 
+#include <deque> // debug / print
+#include <sstream>
+#include <iostream>
+
 namespace tft {
 
 
@@ -75,11 +79,11 @@ public:
 		typedef typename Allocator::pointer pointer;
 		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
 
-		iterator();
-		iterator(const iterator&);
-		~iterator();
+		iterator() = default;
+		iterator(const iterator&) = default;
+		~iterator() = default;
 
-		iterator& operator=(const iterator&);
+		iterator& operator=(const iterator&) = default;
 		bool operator==(const iterator&) const;
 		bool operator!=(const iterator&) const;
 		bool operator<(const iterator&) const; //optional
@@ -110,10 +114,10 @@ public:
 		typedef typename Allocator::pointer pointer;
 		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
 
-		const_iterator();
+		const_iterator() = default;
 		const_iterator(const const_iterator&);
 		const_iterator(const iterator&);
-		~const_iterator();
+		~const_iterator() = default;
 
 		const_iterator& operator=(const const_iterator&);
 		bool operator==(const const_iterator&) const;
@@ -279,12 +283,91 @@ public:
 	key_compare key_comp() const;
 
 	protected:
-	Allocator the_allocator;
-	Compare  the_comparator;
+	/**
+	 * The internal data structure
+	 * Each node contains 1 to 3 Keys
+	 * Each node has a parent node (except for the root)
+	 * Each node contains 0 to 4 child nodes
+	 * Each node is internally sorted
+	 */
+	class Node {
+		static constexpr const int kMaxNumKeys = 3;
+		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
+		int num_keys_ { 0 };
+		std::array<Key, kMaxNumKeys> keys_;
+		std::array<std::unique_ptr<Node>, kMaxNumChildren> children_;
+		Node *parent_;
+
+		explicit Node(Node * parent) :parent_(parent)
+		{
+		}
+
+		bool isFull();
+		bool isLeaf();
+
+		bool addValue(Key&& value);
+
+		friend TwoFourTree;
+	};
+
+
+
+	protected:
+	Allocator allocator_;
+	Compare  comparator_;
+
+	iterator last_node_;
+	std::unique_ptr<Node> root_;
 };
 
-} // namespace tft
 
+/**************************************************************************************************************
+ *                                          IMPLEMENTATION                                                    *
+ **************************************************************************************************************/
+
+template<class Key, class Compare, class Allocator>
+TwoFourTree<Key, Compare, Allocator>::TwoFourTree() : root_(nullptr){
+	// intentionally unimplemented (yet)
+}
+
+template<class K, class C, class A>
+bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
+
+	if (isFull()) // TODO: overflow
+		return false;
+
+	// find the index to put the value in
+	int idx;
+	for (idx = 0; idx < num_keys_; idx++) {
+		if (keys_[idx] > value)
+			break;
+	}
+
+	// move the other values out of the way
+	for (int k = kMaxNumKeys-1; k > idx; k--) {
+		keys_[k] = std::move(keys_[k - 1]);
+	}
+	keys_[idx] = std::move(value);
+	num_keys_++;
+	return true;
+}
+
+template<class K, class C, class A>
+bool TwoFourTree<K,C,A>::Node::isFull() {
+	return (num_keys_ == kMaxNumKeys);
+}
+
+template<class K, class C, class A>
+bool TwoFourTree<K,C,A>::Node::isLeaf() {
+	for (int i = 0; i < kMaxNumChildren; i++) {
+		if (children_[i])
+			return false;
+	}
+	return true;
+}
+
+
+} // namespace tft
 template <class Key, class Compare, class Alloc>
 bool operator== (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
 
@@ -306,6 +389,7 @@ bool operator>= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoF
 // TODO: consider implementing three way compare
 //template <class Key, class Compare, class Alloc>
 //? operator<=> (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
+
 
 
 #endif /* SRC_TFTREE_HPP_ */
