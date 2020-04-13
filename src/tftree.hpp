@@ -451,8 +451,10 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 
 	Node* currentNode = pr.first;
 
-	if (!currentNode) // when might this occur?
+	if (!currentNode) {// when might this occur?
+		std::cout << "insert: currentNode is nullptr\n";
 		return std::make_pair(TwoFourTree<K,C,A>::iterator(), false);
+	}
 
 	if (!currentNode->isFull()) {
 		currentNode->addValue(std::move(value));
@@ -478,7 +480,7 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// [13]    [17]  [33, 35, 37]  [ 43, 45, 47]
 
 		// create the new [17] node
-		std::unique_ptr<Node> newRightNode (new Node());
+		std::unique_ptr<Node> newRightNode (new Node(&currentNode->getParent()));
 		newRightNode->addValue (currentNode->extractValue(2));
 
 		// extract the middle value to give to parent
@@ -505,12 +507,15 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 template<class K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 
-	if (isFull()) // TODO: overflow
+	if (isFull()) {// TODO: overflow
+		std::cout << "addValue: check if node is full before blinding adding value!\n";
 		return false;
+	}
 
-	if (!isLeaf()) // not sure how to handle children
+	if (!isLeaf()) {// not sure how to handle children
+		std::cout << "addValue: don't call addValue on an internal node!\n";
 		return false;
-
+	}
 	// find the index to put the value in
 	int idx;
 	for (idx = 0; idx < num_keys_; idx++) {
@@ -532,6 +537,8 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
  */
 template <class K, class C, class A>
 void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild) {
+	newChild->parent_ = parent_;
+
 	int myIndex = -1;
 	for (int i=0; i <= parent_->num_keys_; i++) {
 		if (parent_->children_[i].get() == this) {
@@ -539,7 +546,7 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 			break;
 		}
 	}
-	std::cout << "my index = " << myIndex << std::endl;
+
 	assert(myIndex != -1);
 
 	if (!parent_->isFull()){
@@ -550,11 +557,9 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 		parent_->keys_[myIndex] = std::move(key);
 		parent_->num_keys_++;
 		parent_->children_[myIndex+1] = std::move(newChild);
-//		std::cout << "printing parent:\n";
-//		parent_->print();
 		return;
-	} else { // cascaded overflow
 
+	} else { // cascaded overflow
 		std::cout << "TODO: Cascaded overflow" << std::endl;
 	}
 }
@@ -563,11 +568,14 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 	if (index < 0 || index >= num_keys_) {
+		std::cout << "extractValue: index out of bounds! index = " << index << std::endl;
 		return Key(); // TODO: index out of bounds
 	}
 
-	if (!isLeaf())
+	if (!isLeaf()) {
+		std::cout << "extractValue: called on an internal node!\n";
 		return Key(); // TODO: logic error
+	}
 
 	Key k = std::move(keys_[index]);
 
@@ -629,6 +637,7 @@ std::pair<typename TwoFourTree<Key,C,A>::Node *, bool> TwoFourTree<Key,C,A>::Nod
 
 template<class K, class C, class A>
 std::unique_ptr<typename TwoFourTree<K,C,A>::Node> TwoFourTree<K,C,A>::Node::extractChild(int index) {
+	std::cout << "extractChild: dangerous function to use, deprecate this ASAP\n";
 	return std::move(children_[index]);
 }
 
@@ -639,8 +648,10 @@ bool TwoFourTree<K,C,A>::Node::addChild(std::unique_ptr<Node> newChild){
 
 	for (int i=0; i < num_keys_; i++) {
 		if (minChildValue < keys_[i]) { // i shall be the child index
-			if (children_[i]) // child already exists
+			if (children_[i]) {// child already exists
+				std::cout << "Logic error: Trying to add child but similar exists\n";
 				return false;
+			}
 
 			newChild->parent_ = this;
 			children_[i] = std::move(newChild);
@@ -650,8 +661,10 @@ bool TwoFourTree<K,C,A>::Node::addChild(std::unique_ptr<Node> newChild){
 	// child is bigger than all
 
 	// check if there is already a child here
-	if (children_[num_keys_])
+	if (children_[num_keys_]) {
+		std::cout << "Logic error: Trying to add child but similar exists 2\n";
 		return false;
+	}
 
 	newChild->parent_ = this;
 	children_[num_keys_] = std::move(newChild);

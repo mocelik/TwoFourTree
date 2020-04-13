@@ -10,8 +10,9 @@
 
 #include "catch.hpp"
 #include "../src/tftree.hpp"
+#include <vector>
 
-TEST_CASE( "Inserting", "[insert]" ) {
+TEST_CASE( "Simple Insert", "[insert]" ) {
 
 	tft::TwoFourTree<int> tree;
 
@@ -20,30 +21,49 @@ TEST_CASE( "Inserting", "[insert]" ) {
 	REQUIRE(tree.insert(40).second);
 	REQUIRE(tree.insert(20).second);
 
-	SECTION("Simple overflow") {
-		REQUIRE(tree.insert(10).second);
-		REQUIRE(tree.insert(15).second);
-		REQUIRE(tree.insert(25).second); // this one will cause overflow
-		std::cout << "End of Simple Overflow:\n";
+	// Adding same values again should not succeed
+	REQUIRE(!tree.insert(30).second);
+	REQUIRE(!tree.insert(40).second);
+	REQUIRE(!tree.insert(20).second);
+}
+
+/**
+ *  I want this tree:
+ *              [   30,          40     ]
+ *             /            |             \
+ *     [ 13, 15, 17]  [ 33, 35, 37]  [ 43, 45, 37]
+ *
+ *  And I will overflow each of the 3 children by adding 14, 34 and 44 respectively
+ */
+TEST_CASE( "Insert with Single Overflow", "[insert]" ) {
+
+	tft::TwoFourTree<int> tree;
+
+	// first few values will go into root
+	std::vector<int> values {13, 30, 40, 47, 35, 33, 15, 17, 37, 43, 45 };
+	bool rc;
+	for ( auto it : values ) {
+		rc = tree.insert(std::move(it)).second;
+		REQUIRE(rc);
+	}
+
+	SECTION("First child overflows") {
+		rc = tree.insert(14).second;
+		CHECK(rc);
+	}
+
+	SECTION("Second child overflows") {
+		rc = tree.insert(34).second;
+		CHECK(rc);
+	}
+
+	SECTION("Third child overflows") {
+		rc = tree.insert(44).second;
+		CHECK(rc);
+	}
+
+	if (!rc) {
 		tree.print();
 	}
-//
-//	SECTION("Cascading Overflow") {
-//		REQUIRE(tree.insert(10).second);
-//		REQUIRE(tree.insert(15).second);
-//		REQUIRE(tree.insert(25).second); // this one will cause simple overflow
-//
-//		REQUIRE(tree.insert(18).second);
-//		REQUIRE(tree.insert(19).second);
-//		REQUIRE(tree.insert(16).second);
-//
-//		std::cout << "Printing before cascaded overflow:\n";
-//		tree.print();
-//
-//		REQUIRE(tree.insert(1).second); // fails <- cascaded overflow
-//		std::cout << "Printing after cascaded overflow:\n";
-//		tree.print();
-//	}
-
 }
 
