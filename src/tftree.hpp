@@ -307,7 +307,6 @@ public:
 		explicit Node(Node * parent) :parent_(parent)
 		{
 		}
-		Node() = default;
 
 		bool isFull();
 		bool isLeaf();
@@ -321,7 +320,7 @@ public:
 		std::unique_ptr<Node> extractChild(int index);
 		bool addChild(std::unique_ptr<Node> newChild);
 
-		void addWithOverflow(Key&& value, std::unique_ptr<Node> childToRight);
+		void addWithOverflow(Key&& value, std::unique_ptr<Node> childToRight, std::unique_ptr<Node>& root);
 
 		// debug
 		void print();
@@ -491,19 +490,13 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// extract the middle value to give to parent
 		K middleValue = currentNode->extractValue(1);
 
-		currentNode->addWithOverflow(std::move(middleValue), std::move(newRightNode));
+		if (value < middleValue) {
+			currentNode->addValue(std::move(value));
+		} else {
+			newRightNode->addValue(std::move(value));
+		}
 
-		// finally there must be enough space to put the value in
-		Node& parent = currentNode->getParent();
-		std::pair<Node*, bool> parentReturn = parent.getNodeContainingKey(value);
-
-		assert(!parentReturn.second);
-		currentNode = parentReturn.first;
-
-		// TODO:
-		// can we determine which child the value is going to go to before we call addWithOverflow?
-		// won't it be either currentNode or newRightNode?
-		currentNode->addValue(std::move(value));
+		currentNode->addWithOverflow(std::move(middleValue), std::move(newRightNode), root_);
 
 		return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
 	}
@@ -541,7 +534,7 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
  *
  */
 template <class K, class C, class A>
-void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild) {
+void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild, std::unique_ptr<Node>& root) {
 	newChild->parent_ = parent_;
 
 	int myIndex = -1;
@@ -565,7 +558,88 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 		return;
 
 	} else { // cascaded overflow
-		std::cout << "TODO: Cascaded overflow" << std::endl;
+		std::cout << "Cascaded overflow" << std::endl;
+
+		if (parent_ == root.get()) {
+			std::unique_ptr<Node> nr(new Node(nullptr));
+			nr->addChild(std::move(root));
+			root = std::move(nr);
+		}
+
+		if (key < parent_->keys_[0]) {
+			std::unique_ptr<Node> newRightNode(new Node(parent_));
+			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->num_keys_ = 1;
+			newRightNode->children_[0] = std::move(parent_->children_[2]);
+			newRightNode->children_[1] = std::move(parent_->children_[3]);
+
+			// extract the middle value to give to parent
+			K middleValue = std::move(parent_->keys_[1]);
+
+			// key < everything so ... TODO note here, maybe generalize with else statement below
+			parent_->keys_[1] = std::move(parent_->keys_[0]);
+			parent_->keys_[0] = std::move(key);
+			parent_->num_keys_ = 2;
+
+			parent_->children_[2] = std::move(parent_->children_[1]);
+			parent_->children_[1] = std::move(newChild);
+
+			parent_->addWithOverflow(std::move(middleValue),
+					std::move(newRightNode), root);
+		} else if (key < parent_->keys_[1]) {
+
+			std::unique_ptr<Node> newRightNode(new Node(parent_));
+			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->num_keys_ = 1;
+			newRightNode->children_[0] = std::move(parent_->children_[2]);
+			newRightNode->children_[1] = std::move(parent_->children_[3]);
+
+			// extract the middle value to give to parent
+			K middleValue = std::move(parent_->keys_[1]);
+
+			parent_->keys_[1] = std::move(key);
+			parent_->num_keys_ = 2;
+
+			parent_->children_[2] = std::move(newChild);
+
+			parent_->addWithOverflow(std::move(middleValue),
+					std::move(newRightNode), root);
+
+		} else if (key < parent_->keys_[2]) {
+			std::unique_ptr<Node> newRightNode(new Node(parent_));
+			newRightNode->keys_[0] = std::move(key);
+			newRightNode->keys_[1] = std::move(parent_->keys_[2]);
+			newRightNode->num_keys_ = 2;
+			newRightNode->children_[0] = std::move(parent_->children_[2]);
+			newRightNode->children_[1] = std::move(newChild);
+			newRightNode->children_[2] = std::move(parent_->children_[3]);
+
+			// extract the middle value to give to parent
+			K middleValue = std::move(parent_->keys_[1]);
+
+			parent_->num_keys_ = 1;
+			// remaining parent keys and children stay as is
+
+			parent_->addWithOverflow(std::move(middleValue),
+					std::move(newRightNode), root);
+		} else {
+			std::unique_ptr<Node> newRightNode(new Node(parent_));
+			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->keys_[1] = std::move(key);
+			newRightNode->num_keys_ = 2;
+			newRightNode->children_[0] = std::move(parent_->children_[2]);
+			newRightNode->children_[1] = std::move(parent_->children_[3]);
+			newRightNode->children_[2] = std::move(newChild);
+
+			// extract the middle value to give to parent
+			K middleValue = std::move(parent_->keys_[1]);
+
+			parent_->num_keys_ = 1;
+			// remaining parent keys and children stay as is
+
+			parent_->addWithOverflow(std::move(middleValue),
+					std::move(newRightNode), root);
+		}
 	}
 }
 

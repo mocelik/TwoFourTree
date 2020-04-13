@@ -103,30 +103,38 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 		REQUIRE(rc);
 	}
 
-	tree.print();
-
 	SECTION("Cascaded overflow") {
 		rc = tree.insert(14).second;
 		REQUIRE(rc);
 		CHECK(tree.contains(14));
+		rc = tree.insert(14).second;
+		CHECK(!rc);
 	}
 
-//	SECTION("Second child overflows") {
-//		rc = tree.insert(34).second;
-//		CHECK(rc);
-//	}
-//
-//	SECTION("Third child overflows") {
-//		rc = tree.insert(44).second;
-//		CHECK(rc);
-//	}
+	SECTION("Second child overflows") {
+		rc = tree.insert(34).second;
+		CHECK(rc);
+		rc = tree.insert(34).second;
+		CHECK(!rc);
+	}
 
-	if (!rc) {
-		tree.print();
+	SECTION("Third child overflows") {
+		rc = tree.insert(44).second;
+		CHECK(rc);
+		rc = tree.insert(44).second;
+		CHECK(!rc);
+	}
+
+	SECTION("Fourth child overflows") {
+		rc = tree.insert(54).second;
+		CHECK(rc);
+		rc = tree.insert(54).second;
+		CHECK(!rc);
 	}
 
 	for ( auto it : values ) {
 		REQUIRE(tree.contains(it));
 	}
-}
 
+	tree.print();
+}
