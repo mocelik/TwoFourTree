@@ -464,13 +464,6 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		currentNode->addValue(std::move(value));
 		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
 	} else {
-
-		if (currentNode == root_.get()) {
-			std::unique_ptr<Node> nr(new Node(nullptr));
-			nr->addChild(std::move(root_));
-			root_ = std::move(nr);
-		}
-
 		// to handle overflow we split the currentNode with 3 values into two nodes with one value each
 		// and push the missing 3rd value to the parent
 
@@ -535,25 +528,33 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
  */
 template <class K, class C, class A>
 void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild, std::unique_ptr<Node>& root) {
-	newChild->parent_ = parent_;
 
-	int myIndex = -1;
-	for (int i=0; i <= parent_->num_keys_; i++) {
-		if (parent_->children_[i].get() == this) {
-			myIndex = i;
-			break;
-		}
+	if (this == root.get()) {
+		std::unique_ptr<Node> nr(new Node(nullptr));
+		parent_ = nr.get();
+		nr->children_[0] = std::move(root);
+		root = std::move(nr);
 	}
 
-	assert(myIndex != -1);
 
 	if (!parent_->isFull()){
+
+		int myIndex = -1;
+		for (int i=0; i <= parent_->num_keys_; i++) {
+			if (parent_->children_[i].get() == this) {
+				myIndex = i;
+				break;
+			}
+		}
+		assert(myIndex != -1);
+
 		for (int i=parent_->num_keys_; i > myIndex; i--) {
 			parent_->keys_[i] = std::move(parent_->keys_[i-1]);
 			parent_->children_[i+1] = std::move(parent_->children_[i]);
 		}
 		parent_->keys_[myIndex] = std::move(key);
 		parent_->num_keys_++;
+		newChild->parent_ = parent_;
 		parent_->children_[myIndex+1] = std::move(newChild);
 		return;
 
