@@ -311,8 +311,8 @@ public:
 
 		bool isFull();
 		bool isLeaf();
-		bool containsKey(Key& k);
-		std::pair<Node *, bool> getNodeContainingKey (Key& key);
+		bool containsKey(const Key& k);
+		std::pair<Node*, bool> getNodeContainingKey(const Key &key);
 
 		Node& getParent();
 
@@ -429,6 +429,11 @@ void TwoFourTree<K,C,A>::Node::print() {
 		std::cout << "node[" << i << "]: " << keys_[i] << "\t";
 	}
 	std::cout << std::endl;
+}
+
+template<class Key, class C, class A>
+bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
+	return root_->getNodeContainingKey(key).second;
 }
 
 /**
@@ -592,7 +597,7 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
  * and a pointer to a node that would contain the value if it did exist
  */
 template<class Key, class C, class A>
-std::pair<typename TwoFourTree<Key,C,A>::Node *, bool> TwoFourTree<Key,C,A>::Node::getNodeContainingKey (Key& key){
+std::pair<typename TwoFourTree<Key,C,A>::Node *, bool> TwoFourTree<Key,C,A>::Node::getNodeContainingKey (const Key& key){
 	Node * currentNode = this;
 
 	while (!currentNode->isLeaf()) {
@@ -686,7 +691,7 @@ bool TwoFourTree<K,C,A>::Node::isLeaf() {
 }
 
 template<class  K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::containsKey (K& k) {
+bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 	for (int i=0; i < num_keys_; i++)
 		if (keys_[i] == k)
 			return true;
