@@ -16,6 +16,7 @@
 #include <algorithm> // sort
 
 #include <deque> // debug / print
+#include <cassert>
 #include <sstream>
 #include <iostream>
 
@@ -313,12 +314,14 @@ public:
 		bool containsKey(Key& k);
 		std::pair<Node *, bool> getNodeContainingKey (Key& key);
 
+		Node& getParent();
+
 		bool addValue(Key&& value);
 		Key extractValue(int index);
 		std::unique_ptr<Node> extractChild(int index);
 		bool addChild(std::unique_ptr<Node> newChild);
 
-		void insertOverflow(Key&& value, std::unique_ptr<Node> childToRight);
+		void addWithOverflow(Key&& value, std::unique_ptr<Node> childToRight);
 
 		// debug
 		void print();
@@ -481,10 +484,20 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// extract the middle value to give to parent
 		K middleValue = currentNode->extractValue(1);
 
-		// put value in currentNode
+		currentNode->addWithOverflow(std::move(middleValue), std::move(newRightNode));
+
+		// finally there must be enough space to put the value in
+		Node& parent = currentNode->getParent();
+		std::pair<Node*, bool> parentReturn = parent.getNodeContainingKey(value);
+
+		assert(!parentReturn.second);
+		currentNode = parentReturn.first;
+
+		// TODO:
+		// can we determine which child the value is going to go to before we call addWithOverflow?
+		// won't it be either currentNode or newRightNode?
 		currentNode->addValue(std::move(value));
 
-//		insertOverflow(currentNode, std::move(middleValue), std::move(newRightNode)); // TODO
 		return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
 	}
 }
@@ -506,7 +519,7 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 	}
 
 	// move the other values out of the way
-	for (int k = kMaxNumKeys - 1; k > idx; k--) {
+	for (int k = num_keys_; k > idx; k--) {
 		keys_[k] = std::move(keys_[k - 1]);
 	}
 	keys_[idx] = std::move(value);
@@ -514,14 +527,55 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 	return true;
 }
 
+/**
+ *
+ */
+template <class K, class C, class A>
+void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild) {
+	int myIndex = -1;
+	for (int i=0; i <= parent_->num_keys_; i++) {
+		if (parent_->children_[i].get() == this) {
+			myIndex = i;
+			break;
+		}
+	}
+	std::cout << "my index = " << myIndex << std::endl;
+	assert(myIndex != -1);
+
+	if (!parent_->isFull()){
+		for (int i=parent_->num_keys_; i > myIndex; i--) {
+			parent_->keys_[i] = std::move(parent_->keys_[i-1]);
+			parent_->children_[i+1] = std::move(parent_->children_[i]);
+		}
+		parent_->keys_[myIndex] = std::move(key);
+		parent_->num_keys_++;
+		parent_->children_[myIndex+1] = std::move(newChild);
+//		std::cout << "printing parent:\n";
+//		parent_->print();
+		return;
+	} else { // cascaded overflow
+
+		std::cout << "TODO: Cascaded overflow" << std::endl;
+	}
+}
+
 
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
-	if (index < 0 || index >= kMaxNumKeys) {
+	if (index < 0 || index >= num_keys_) {
 		return Key(); // TODO: index out of bounds
 	}
+
+	if (!isLeaf())
+		return Key(); // TODO: logic error
+
+	Key k = std::move(keys_[index]);
+
+	for (int i=index; i < num_keys_ - 1; i++)
+		keys_[i] = std::move(i+1);
+
 	num_keys_--;
-	return std::move(keys_[index]);
+	return std::move(k);
 }
 
 /**
@@ -593,8 +647,9 @@ bool TwoFourTree<K,C,A>::Node::addChild(std::unique_ptr<Node> newChild){
 			return true;
 		}
 	}
-
 	// child is bigger than all
+
+	// check if there is already a child here
 	if (children_[num_keys_])
 		return false;
 
@@ -623,6 +678,11 @@ bool TwoFourTree<K,C,A>::Node::containsKey (K& k) {
 		if (keys_[i] == k)
 			return true;
 	return false;
+}
+
+template <class K, class C, class A>
+typename TwoFourTree<K,C,A>::Node& TwoFourTree<K,C,A>::Node::getParent() {
+	return *parent_;
 }
 
 

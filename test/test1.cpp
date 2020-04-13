@@ -20,13 +20,13 @@ TEST_CASE( "Inserting", "[insert]" ) {
 	REQUIRE(tree.insert(40).second);
 	REQUIRE(tree.insert(20).second);
 
-//	SECTION("Simple overflow") {
-//		REQUIRE(tree.insert(10).second);
-//		REQUIRE(tree.insert(15).second);
-//		REQUIRE(tree.insert(25).second); // this one will cause overflow
-//		std::cout << "End of Simple Overflow:\n";
-//		tree.print();
-//	}
+	SECTION("Simple overflow") {
+		REQUIRE(tree.insert(10).second);
+		REQUIRE(tree.insert(15).second);
+		REQUIRE(tree.insert(25).second); // this one will cause overflow
+		std::cout << "End of Simple Overflow:\n";
+		tree.print();
+	}
 //
 //	SECTION("Cascading Overflow") {
 //		REQUIRE(tree.insert(10).second);
