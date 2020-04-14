@@ -103,7 +103,7 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 		REQUIRE(rc);
 	}
 
-	SECTION("Cascaded overflow") {
+	SECTION("First child overflows") {
 		rc = tree.insert(14).second;
 		REQUIRE(rc);
 		CHECK(tree.contains(14));
@@ -137,4 +137,10 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 	}
 
 	tree.print();
+
+	std::cout << "validating: \n";
+	if (tree.validate())
+		std::cout << "valid!\n";
+	else
+		std::cout <<"invalid!\n";
 }

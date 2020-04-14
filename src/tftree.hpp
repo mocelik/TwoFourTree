@@ -286,6 +286,7 @@ public:
 
 	// debug
 	void print() const;
+	bool validate();
 
 	protected:
 	/**
@@ -326,6 +327,7 @@ public:
 		void print();
 		void printAll();
 		std::string getString();
+		bool validateRelationships();
 
 	};
 
@@ -346,6 +348,58 @@ template<class Key, class Compare, class Allocator>
 TwoFourTree<Key, Compare, Allocator>::TwoFourTree() : root_(nullptr){
 	// intentionally unimplemented (yet)
 }
+
+template <class K, class C, class A>
+bool TwoFourTree<K,C,A>::validate() {
+	return root_->validateRelationships();
+}
+
+template <class K, class C, class A>
+bool TwoFourTree<K,C,A>::Node::validateRelationships() {
+	Node * node = this;
+	bool rc = true;
+	// parent -> child
+	std::deque<std::pair<typename TwoFourTree<K,C,A>::Node*, typename TwoFourTree<K,C,A>::Node*>> allNodes;
+	allNodes.push_back(std::make_pair(nullptr, node));
+
+	while (!allNodes.empty()) {
+		auto check = allNodes.front();
+		allNodes.pop_front();
+		node = check.second;
+
+		if (check.first != check.second->parent_) {
+			rc = false;
+			std::cout << "parent of [" << check.second->getString() << "] doesn't have correct parent.\n";
+			std::cout << "parent should be: ";
+			if (check.first == nullptr)
+				std::cout << "nullptr\n";
+			else
+				std::cout << check.first->getString() << "\n";
+			std::cout << "instead it is: ";
+			if (check.second->parent_ == nullptr)
+				std::cout << "nullptr\n";
+			else
+				std::cout << check.second->parent_->getString() << "\n";
+		} else {
+			static int i=0;
+			i++;
+			if (i > 25) {
+				std::cout << "detected broken cycle while checking validity\n";
+				return false;
+			}
+		}
+
+
+		for (int i = 0; i < node->num_keys_+1; i++) {
+			if (node->children_[i]) {
+				allNodes.push_back(std::make_pair(node,node->children_[i].get()));
+			}
+		}
+	} // end loop
+	return rc;
+}
+
+
 
 template<class K, class C, class A>
 void TwoFourTree<K,C,A>::print() const{
@@ -724,6 +778,11 @@ std::unique_ptr<typename TwoFourTree<K,C,A>::Node> TwoFourTree<K,C,A>::Node::ext
 //
 template<class K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::addChild(std::unique_ptr<Node> newChild){
+	if (newChild->num_keys_ == 0) {
+		std::cout << "Logic error: If there aren't any keys in the new child don't give it to me please\n";
+		return false;
+	}
+
 	K& minChildValue = newChild->keys_[0];
 
 	for (int i=0; i < num_keys_; i++) {
