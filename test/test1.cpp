@@ -84,12 +84,13 @@ TEST_CASE( "Insert with Single Overflow", "[insert][overflow]" ) {
  *  Cascaded overflow test
  *  Add more values to the tree from above to make the parent full
  *
- *  This is the tree used
- *              [   30,          40                 50  ]
- *             /            |             |              \
- *     [ 13, 15, 17]  [ 33, 35, 37]  [ 43, 45, 37]  [ 53, 55, 57 ]
+ *  This is the tree used:
+ *             [    30,            40               50  ]
+ *            /             |              |             \
+ *     [ 13, 15, 17 ] [ 33, 35, 37 ] [ 43, 45, 37 ] [ 53, 55, 57 ]
  *
- *  And I will overflow each of the 3 children by adding 14, 34 and 44 respectively
+ *  This test overflows each of the 4 children by adding 14, 34, 44 and 55 respectively
+ *  Expected behaviour is for 40 to be pushed to become the new root (height increase by one)
  */
 TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 
@@ -136,11 +137,6 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 		REQUIRE(tree.contains(it));
 	}
 
-	tree.print();
-
-	std::cout << "validating: \n";
-	if (tree.validate())
-		std::cout << "valid!\n";
-	else
-		std::cout <<"invalid!\n";
+	// Verifies all children have correct parents
+	REQUIRE(tree.validate());
 }

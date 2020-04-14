@@ -297,6 +297,7 @@ public:
 	 * Each node is internally sorted
 	 */
 	class Node {
+	public:
 		static constexpr const int kMaxNumKeys = 3;
 		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
 		int num_keys_ { 0 };
@@ -304,7 +305,6 @@ public:
 		std::array<std::unique_ptr<Node>, kMaxNumChildren> children_;
 		Node *parent_ { nullptr };
 
-	public:
 		explicit Node(Node * parent) :parent_(parent)
 		{
 		}
@@ -314,7 +314,7 @@ public:
 		bool containsKey(const Key& k);
 		std::pair<Node*, bool> getNodeContainingKey(const Key &key);
 
-		Node& getParent();
+		Node* getParent();
 
 		bool addValue(Key&& value);
 		Key extractValue(int index);
@@ -383,7 +383,7 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() {
 		} else {
 			static int i=0;
 			i++;
-			if (i > 25) {
+			if (i > 500) {
 				std::cout << "detected broken cycle while checking validity\n";
 				return false;
 			}
@@ -531,7 +531,7 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// [13]    [17]  [33, 35, 37]  [ 43, 45, 47]
 
 		// create the new [17] node
-		std::unique_ptr<Node> newRightNode (new Node(&currentNode->getParent()));
+		std::unique_ptr<Node> newRightNode (new Node(currentNode->getParent()));
 		newRightNode->addValue (currentNode->extractValue(2));
 
 		// extract the middle value to give to parent
@@ -543,7 +543,19 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 			newRightNode->addValue(std::move(value));
 		}
 
-		currentNode->addWithOverflow(std::move(middleValue), std::move(newRightNode), root_);
+		if (currentNode->getParent() == nullptr) {
+			if (currentNode != root_.get()) {
+				std::cout << "Error, parent not found but node isn't root\n";
+				assert (currentNode == root_.get());
+			}
+
+			std::unique_ptr<Node> newRoot (new Node (nullptr));
+			root_->parent_ = newRoot.get();
+			newRoot->children_[0] = std::move(root_);
+			root_ = std::move(newRoot);
+		}
+
+		currentNode->getParent()->addWithOverflow(std::move(middleValue), std::move(newRightNode), root_);
 
 		return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
 	}
@@ -578,122 +590,163 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 }
 
 /**
+ * When you try adding to a node that is already full,  an overflow occurs
+ * We handle the overflow as follows:
  *
+ * The full node has 3 values and up to 4 children.
+ * Of those 3 values:
+ * 	 The first is left in the node
+ * 	 The second is passed on to this function as the Key
+ * 	 The third is placed within a *new* node
+ *
+ * Usually this is called from a leaf node and so children don't have to be moved around.
+ * However, this function is recursive and calls itself, creating new nodes when necessary.
+ * This function knows how to manage the children.
  */
 template <class K, class C, class A>
 void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild, std::unique_ptr<Node>& root) {
 
-	if (this == root.get()) {
-		std::unique_ptr<Node> nr(new Node(nullptr));
-		parent_ = nr.get();
-		nr->children_[0] = std::move(root);
-		root = std::move(nr);
-	}
+	if (!isFull()){
 
-
-	if (!parent_->isFull()){
-
-		int myIndex = -1;
-		for (int i=0; i <= parent_->num_keys_; i++) {
-			if (parent_->children_[i].get() == this) {
-				myIndex = i;
+		// find the index to put the value in
+		int idx;
+		for (idx = 0; idx < num_keys_; idx++) {
+			if (keys_[idx] > key)
 				break;
-			}
 		}
-		assert(myIndex != -1);
 
-		for (int i=parent_->num_keys_; i > myIndex; i--) {
-			parent_->keys_[i] = std::move(parent_->keys_[i-1]);
-			parent_->children_[i+1] = std::move(parent_->children_[i]);
+		// move the other values and children out of the way
+		for (int k = num_keys_; k > idx; k--) {
+			keys_[k] = std::move(keys_[k - 1]);
+			children_[k+1] = std::move(children_[k]);
 		}
-		parent_->keys_[myIndex] = std::move(key);
-		parent_->num_keys_++;
-		newChild->parent_ = parent_;
-		parent_->children_[myIndex+1] = std::move(newChild);
+		keys_[idx] = std::move(key);
+		num_keys_++;
+
+		newChild->parent_ = this;
+		children_[idx+1] = std::move(newChild);
 		return;
 
 	} else { // cascaded overflow
-		std::cout << "Cascaded overflow" << std::endl;
 
-		if (parent_ == root.get()) {
-			std::unique_ptr<Node> nr(new Node(nullptr));
-			nr->addChild(std::move(root));
-			root = std::move(nr);
+		if (parent_ == nullptr) {
+			if (this != root.get()) {
+				std::cout << "Error, I don't have parent but I'm not the root either\n";
+				assert(this == root.get());
+			}
+
+			std::unique_ptr<Node> newRoot(new Node(nullptr));
+			parent_ = newRoot.get();
+			newRoot->children_[0] = std::move(root);
+			root = std::move(newRoot);
 		}
 
-		if (key < parent_->keys_[0]) {
+		if (key < keys_[0]) { // overflow coming from child #0
 			std::unique_ptr<Node> newRightNode(new Node(parent_));
-			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->keys_[0] = std::move(keys_[2]);
 			newRightNode->num_keys_ = 1;
-			newRightNode->children_[0] = std::move(parent_->children_[2]);
-			newRightNode->children_[1] = std::move(parent_->children_[3]);
+			if (children_[2]) {
+				children_[2]->parent_ = newRightNode.get();
+				newRightNode->children_[0] = std::move(children_[2]);
+			}
+			if (children_[3]) {
+				children_[3]->parent_ = newRightNode.get();
+				newRightNode->children_[1] = std::move(children_[3]);
+			}
 
 			// extract the middle value to give to parent
-			K middleValue = std::move(parent_->keys_[1]);
+			K middleValue = std::move(keys_[1]);
 
-			// key < everything so ... TODO note here, maybe generalize with else statement below
-			parent_->keys_[1] = std::move(parent_->keys_[0]);
-			parent_->keys_[0] = std::move(key);
-			parent_->num_keys_ = 2;
+			// key < everything so...
+			keys_[1] = std::move(keys_[0]);
+			keys_[0] = std::move(key);
+			num_keys_ = 2;
 
-			parent_->children_[2] = std::move(parent_->children_[1]);
-			parent_->children_[1] = std::move(newChild);
+			newChild->parent_ = this;
+			children_[2] = std::move(children_[1]);
+			children_[1] = std::move(newChild);
 
 			parent_->addWithOverflow(std::move(middleValue),
 					std::move(newRightNode), root);
-		} else if (key < parent_->keys_[1]) {
+			return;
+
+		} else if (key < keys_[1]) { // overflow coming from child #1
 
 			std::unique_ptr<Node> newRightNode(new Node(parent_));
-			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->keys_[0] = std::move(keys_[2]);
 			newRightNode->num_keys_ = 1;
-			newRightNode->children_[0] = std::move(parent_->children_[2]);
-			newRightNode->children_[1] = std::move(parent_->children_[3]);
+			if (children_[2]) {
+				children_[2]->parent_ = newRightNode.get();
+				newRightNode->children_[0] = std::move(children_[2]);
+			}
+			if (children_[3]) {
+				children_[3]->parent_ = newRightNode.get();
+				newRightNode->children_[1] = std::move(children_[3]);
+			}
 
 			// extract the middle value to give to parent
-			K middleValue = std::move(parent_->keys_[1]);
+			K middleValue = std::move(keys_[1]);
 
-			parent_->keys_[1] = std::move(key);
-			parent_->num_keys_ = 2;
+			keys_[1] = std::move(key);
+			num_keys_ = 2;
 
-			parent_->children_[2] = std::move(newChild);
+			newChild->parent_ = this;
+			children_[2] = std::move(newChild);
 
 			parent_->addWithOverflow(std::move(middleValue),
 					std::move(newRightNode), root);
+			return;
 
-		} else if (key < parent_->keys_[2]) {
+		} else if (key < keys_[2]) { // overflow coming from child #2
 			std::unique_ptr<Node> newRightNode(new Node(parent_));
 			newRightNode->keys_[0] = std::move(key);
-			newRightNode->keys_[1] = std::move(parent_->keys_[2]);
+			newRightNode->keys_[1] = std::move(keys_[2]);
 			newRightNode->num_keys_ = 2;
-			newRightNode->children_[0] = std::move(parent_->children_[2]);
+			if(children_[2]) {
+				children_[2]->parent_ = newRightNode.get();
+				newRightNode->children_[0] = std::move(children_[2]);
+			}
+			if (children_[3]) {
+				children_[3]->parent_ = newRightNode.get();
+				newRightNode->children_[2] = std::move(children_[3]);
+			}
+			newChild->parent_ = newRightNode.get();
 			newRightNode->children_[1] = std::move(newChild);
-			newRightNode->children_[2] = std::move(parent_->children_[3]);
 
 			// extract the middle value to give to parent
-			K middleValue = std::move(parent_->keys_[1]);
+			K middleValue = std::move(keys_[1]);
 
-			parent_->num_keys_ = 1;
+			num_keys_ = 1;
 			// remaining parent keys and children stay as is
 
 			parent_->addWithOverflow(std::move(middleValue),
 					std::move(newRightNode), root);
-		} else {
+			return;
+		} else { // overflow coming from child #3
 			std::unique_ptr<Node> newRightNode(new Node(parent_));
-			newRightNode->keys_[0] = std::move(parent_->keys_[2]);
+			newRightNode->keys_[0] = std::move(keys_[2]);
 			newRightNode->keys_[1] = std::move(key);
 			newRightNode->num_keys_ = 2;
-			newRightNode->children_[0] = std::move(parent_->children_[2]);
-			newRightNode->children_[1] = std::move(parent_->children_[3]);
+			if (children_[2]) {
+				children_[2]->parent_ = newRightNode.get();
+				newRightNode->children_[0] = std::move(children_[2]);
+			}
+			if (children_[3]) {
+				children_[3]->parent_ = newRightNode.get();
+				newRightNode->children_[1] = std::move(children_[3]);
+			}
+			newChild->parent_ = newRightNode.get();
 			newRightNode->children_[2] = std::move(newChild);
 
 			// extract the middle value to give to parent
-			K middleValue = std::move(parent_->keys_[1]);
+			K middleValue = std::move(keys_[1]);
 
-			parent_->num_keys_ = 1;
+			num_keys_ = 1;
 			// remaining parent keys and children stay as is
 
 			parent_->addWithOverflow(std::move(middleValue),
 					std::move(newRightNode), root);
+			return;
 		}
 	}
 }
@@ -833,8 +886,8 @@ bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 }
 
 template <class K, class C, class A>
-typename TwoFourTree<K,C,A>::Node& TwoFourTree<K,C,A>::Node::getParent() {
-	return *parent_;
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::getParent() {
+	return parent_;
 }
 
 
