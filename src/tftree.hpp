@@ -380,15 +380,7 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() {
 				std::cout << "nullptr\n";
 			else
 				std::cout << check.second->parent_->getString() << "\n";
-		} else {
-			static int i=0;
-			i++;
-			if (i > 500) {
-				std::cout << "detected broken cycle while checking validity\n";
-				return false;
-			}
 		}
-
 
 		for (int i = 0; i < node->num_keys_+1; i++) {
 			if (node->children_[i]) {

@@ -8,9 +8,12 @@
  * 		Temporary file to be updated with some test cases
  */
 
-#include "catch.hpp"
 #include "../src/tftree.hpp"
+#include "catch.hpp"
+
+#include <cstdlib>
 #include <vector>
+#include <algorithm>
 
 TEST_CASE( "Simple Insert", "[insert]" ) {
 
@@ -138,5 +141,22 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 	}
 
 	// Verifies all children have correct parents
+	REQUIRE(tree.validate());
+}
+
+TEST_CASE( "Insert - Random add check", "[insert][overflow]" ) {
+	std::vector<int> rands( 10000 );
+	std::generate(rands.begin(),rands.end(), rand);
+
+	tft::TwoFourTree<int> tree;
+
+	for (auto it : rands ) {
+		REQUIRE(tree.insert(std::move(it)).second);
+	}
+
+	for (auto it : rands) {
+		REQUIRE(tree.contains(it));
+	}
+
 	REQUIRE(tree.validate());
 }
