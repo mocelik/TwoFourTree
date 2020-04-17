@@ -13,7 +13,9 @@
 
 #include <cstdlib>
 #include <vector>
+#include <unordered_set>
 #include <algorithm>
+#include <chrono>
 
 TEST_CASE( "Simple Insert", "[insert]" ) {
 
@@ -29,9 +31,9 @@ TEST_CASE( "Simple Insert", "[insert]" ) {
 	CHECK(tree.contains(40));
 
 	// Adding same values again should not succeed
-	REQUIRE(!tree.insert(30).second);
-	REQUIRE(!tree.insert(40).second);
-	REQUIRE(!tree.insert(20).second);
+	CHECK(!tree.insert(30).second);
+	CHECK(!tree.insert(40).second);
+	CHECK(!tree.insert(20).second);
 }
 
 /**
@@ -92,10 +94,10 @@ TEST_CASE( "Insert with Single Overflow", "[insert][overflow]" ) {
  *            /             |              |             \
  *     [ 13, 15, 17 ] [ 33, 35, 37 ] [ 43, 45, 37 ] [ 53, 55, 57 ]
  *
- *  This test overflows each of the 4 children by adding 14, 34, 44 and 55 respectively
+ *  This test overflows each of the 4 children by adding 14, 34, 44 and 54 respectively
  *  Expected behaviour is for 40 to be pushed to become the new root (height increase by one)
  */
-TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
+TEST_CASE( "Insert with Cascaded Overflow", "[insert][overflow]" ) {
 
 	tft::TwoFourTree<int> tree;
 
@@ -109,7 +111,7 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 
 	SECTION("First child overflows") {
 		rc = tree.insert(14).second;
-		REQUIRE(rc);
+		CHECK(rc);
 		CHECK(tree.contains(14));
 		rc = tree.insert(14).second;
 		CHECK(!rc);
@@ -118,6 +120,7 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 	SECTION("Second child overflows") {
 		rc = tree.insert(34).second;
 		CHECK(rc);
+		CHECK(tree.contains(34));
 		rc = tree.insert(34).second;
 		CHECK(!rc);
 	}
@@ -125,6 +128,7 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 	SECTION("Third child overflows") {
 		rc = tree.insert(44).second;
 		CHECK(rc);
+		CHECK(tree.contains(44));
 		rc = tree.insert(44).second;
 		CHECK(!rc);
 	}
@@ -132,6 +136,7 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 	SECTION("Fourth child overflows") {
 		rc = tree.insert(54).second;
 		CHECK(rc);
+		CHECK(tree.contains(54));
 		rc = tree.insert(54).second;
 		CHECK(!rc);
 	}
@@ -145,8 +150,10 @@ TEST_CASE( "Insert with one Cascaded Overflow", "[insert][overflow]" ) {
 }
 
 TEST_CASE( "Insert - Random add check", "[insert][overflow]" ) {
-	std::vector<int> rands( 10000 );
-	std::generate(rands.begin(),rands.end(), rand);
+	const int numTests = 100000; // 100k
+	std::unordered_set<int> rands( numTests ); // need set to remove duplicates
+	for (int i = 0; i < numTests; i++)
+		rands.insert(std::move(rand()));
 
 	tft::TwoFourTree<int> tree;
 

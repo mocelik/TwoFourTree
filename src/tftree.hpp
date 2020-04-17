@@ -297,7 +297,7 @@ public:
 	 * Each node is internally sorted
 	 */
 	class Node {
-	public:
+	private:
 		static constexpr const int kMaxNumKeys = 3;
 		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
 		int num_keys_ { 0 };
@@ -305,23 +305,16 @@ public:
 		std::array<std::unique_ptr<Node>, kMaxNumChildren> children_;
 		Node *parent_ { nullptr };
 
-		explicit Node(Node * parent) :parent_(parent)
-		{
-		}
-
+	public:
+		Node() = default;
 		bool isFull();
 		bool isLeaf();
 		bool containsKey(const Key& k);
-		std::pair<Node*, bool> getNodeContainingKey(const Key &key);
+		std::pair<Node*, int> findKey(const Key &key);
 
-		Node* getParent();
-
-		bool addValue(Key&& value);
+		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
 		Key extractValue(int index);
-		std::unique_ptr<Node> extractChild(int index);
-		bool addChild(std::unique_ptr<Node> newChild);
-
-		void addWithOverflow(Key&& value, std::unique_ptr<Node> childToRight, std::unique_ptr<Node>& root);
+		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		// debug
 		void print();
@@ -329,6 +322,13 @@ public:
 		std::string getString();
 		bool validateRelationships();
 
+	private:
+		explicit Node(Node *parent) :
+				parent_(parent) {
+		}
+
+		std::pair<Node*, int> addValue(Key&& value);
+		void overflowRecursive(Key&& value, std::unique_ptr<Node> childToRight, std::unique_ptr<Node>& root);
 	};
 
 	protected:
@@ -478,93 +478,52 @@ void TwoFourTree<K,C,A>::Node::print() {
 
 template<class Key, class C, class A>
 bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
-	return root_->getNodeContainingKey(key).second;
+	if (!root_)
+		return false;
+
+	std::pair<Node*, int> pr = root_->findKey(key);
+	return (pr.first != nullptr && pr.second != -1);
 }
 
 /**
  * Inserts a value into the tree
- * TODO: insertion logic for overflow
  * TODO: Return correct iterator
  */
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree<K,C,A>::value_type &&value){
 
 	if (!root_) {
-		root_.reset(new Node(nullptr));
+		root_.reset(new Node());
 		root_->addValue(std::move(value));
 		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
 	}
 
-	std::pair<Node *, bool> pr = root_->getNodeContainingKey(value);
-	if (pr.second) // value already exists
+	std::pair<Node *, int> pr = root_->findKey(value);
+
+	if (pr.first == nullptr || pr.second != -1) // value already exists
 		return std::make_pair(TwoFourTree<K, C, A>::iterator(), false);
 
-	Node* currentNode = pr.first;
-
-	if (!currentNode) {// when might this occur?
-		std::cout << "insert: currentNode is nullptr\n";
-		return std::make_pair(TwoFourTree<K,C,A>::iterator(), false);
-	}
-
-	if (!currentNode->isFull()) {
-		currentNode->addValue(std::move(value));
-		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
-	} else {
-		// to handle overflow we split the currentNode with 3 values into two nodes with one value each
-		// and push the missing 3rd value to the parent
-
-		// e.g. adding 11 here would result in:
-		//        [30,                40]
-		//       /            |          \
-		// [ 13, 15, 17] [33, 35, 37]  [ 43, 45, 47]
-
-		//      [15,     30,        40]
-		//     /    |        |          \
-		// [13]    [17]  [33, 35, 37]  [ 43, 45, 47]
-
-		// create the new [17] node
-		std::unique_ptr<Node> newRightNode (new Node(currentNode->getParent()));
-		newRightNode->addValue (currentNode->extractValue(2));
-
-		// extract the middle value to give to parent
-		K middleValue = currentNode->extractValue(1);
-
-		if (value < middleValue) {
-			currentNode->addValue(std::move(value));
-		} else {
-			newRightNode->addValue(std::move(value));
-		}
-
-		if (currentNode->getParent() == nullptr) {
-			if (currentNode != root_.get()) {
-				std::cout << "Error, parent not found but node isn't root\n";
-				assert (currentNode == root_.get());
-			}
-
-			std::unique_ptr<Node> newRoot (new Node (nullptr));
-			root_->parent_ = newRoot.get();
-			newRoot->children_[0] = std::move(root_);
-			root_ = std::move(newRoot);
-		}
-
-		currentNode->getParent()->addWithOverflow(std::move(middleValue), std::move(newRightNode), root_);
-
-		return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
-	}
+	pr.first->addValue(std::move(value), root_); // root_ may change
+	return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
 }
 
 template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
+std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value, std::unique_ptr<Node> &root) {
+	assert(isLeaf()); // incorrect usage -> find the leaf using findKey
 
-	if (isFull()) {// TODO: overflow
-		std::cout << "addValue: check if node is full before blinding adding value!\n";
-		return false;
+	if (isFull()) {
+		return addValueOverflow(std::move(value), root);
 	}
 
-	if (!isLeaf()) {// not sure how to handle children
-		std::cout << "addValue: don't call addValue on an internal node!\n";
-		return false;
-	}
+	return addValue(std::move(value));
+}
+
+
+template<class K, class C, class A>
+std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value) {
+	assert(isLeaf()); // incorrect usage -> find the leaf using findKey
+	assert(!isFull()); // use other signature - may need to modify root?
+
 	// find the index to put the value in
 	int idx;
 	for (idx = 0; idx < num_keys_; idx++) {
@@ -578,25 +537,64 @@ bool TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 	}
 	keys_[idx] = std::move(value);
 	num_keys_++;
-	return true;
+	return std::make_pair(this, idx);
 }
 
 /**
- * When you try adding to a node that is already full,  an overflow occurs
- * We handle the overflow as follows:
+ * To handle overflow we split the currentNode with 3 values into two nodes with one value each
+ * and push the missing 3rd value to the parent
+ * Then we put the requested value into either the current node or the newly created one
  *
- * The full node has 3 values and up to 4 children.
- * Of those 3 values:
- * 	 The first is left in the node
- * 	 The second is passed on to this function as the Key
- * 	 The third is placed within a *new* node
+ * e.g. adding 11 would result in this tree:
  *
- * Usually this is called from a leaf node and so children don't have to be moved around.
- * However, this function is recursive and calls itself, creating new nodes when necessary.
- * This function knows how to manage the children.
+ *        [30,                40]
+ *       /            |          \
+ * [ 13, 15, 17] [33, 35, 37]  [ 43, 45, 47]
+ *
+ *				becoming:
+ *      [15,         30,        40]
+ *     /    |         |          \
+ * [11,13] [17]  [33, 35, 37]  [ 43, 45, 47]
  */
 template <class K, class C, class A>
-void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> newChild, std::unique_ptr<Node>& root) {
+std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValueOverflow(K &&value, std::unique_ptr<Node> &root) {
+	assert(isLeaf());
+
+	// create the new neighbour node ([17] in the example above)
+	std::unique_ptr<Node> newRightNode(new Node()); // note: parent may be updated later if a cascaded overflow occurs
+	newRightNode->addValue(extractValue(2));
+
+	// extract the middle value to give to parent
+	K middleValue = extractValue(1);
+
+	std::pair<Node *, int> value_location;
+	if (value < middleValue) {
+		value_location = addValue(std::move(value)); // this node now has space so it won't be recursive
+	} else {
+		value_location = newRightNode->addValue(std::move(value));
+	}
+
+	if (parent_ == nullptr) {
+		assert(this == root.get());
+		std::unique_ptr<Node> newRoot(new Node(nullptr));
+		root->parent_ = newRoot.get();
+		newRoot->children_[0] = std::move(root);
+		root = std::move(newRoot);
+	}
+
+	parent_->overflowRecursive(std::move(middleValue), std::move(newRightNode),
+			root);
+	return value_location;
+}
+
+/**
+ * Handles overflows coming from one of its children
+ * If this node is full, it recursively calls itself, splitting into additional nodes as required
+ *
+ * Note: tail recursion optimisation is possible here so there is no performance penalty
+ */
+template <class K, class C, class A>
+void TwoFourTree<K,C,A>::Node::overflowRecursive (K&& key, std::unique_ptr<Node> newChild, std::unique_ptr<Node>& root) {
 
 	if (!isFull()){
 
@@ -658,7 +656,7 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 			children_[2] = std::move(children_[1]);
 			children_[1] = std::move(newChild);
 
-			parent_->addWithOverflow(std::move(middleValue),
+			parent_->overflowRecursive(std::move(middleValue),
 					std::move(newRightNode), root);
 			return;
 
@@ -685,7 +683,7 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 			newChild->parent_ = this;
 			children_[2] = std::move(newChild);
 
-			parent_->addWithOverflow(std::move(middleValue),
+			parent_->overflowRecursive(std::move(middleValue),
 					std::move(newRightNode), root);
 			return;
 
@@ -711,7 +709,7 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 			num_keys_ = 1;
 			// remaining parent keys and children stay as is
 
-			parent_->addWithOverflow(std::move(middleValue),
+			parent_->overflowRecursive(std::move(middleValue),
 					std::move(newRightNode), root);
 			return;
 		} else { // overflow coming from child #3
@@ -736,7 +734,7 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 			num_keys_ = 1;
 			// remaining parent keys and children stay as is
 
-			parent_->addWithOverflow(std::move(middleValue),
+			parent_->overflowRecursive(std::move(middleValue),
 					std::move(newRightNode), root);
 			return;
 		}
@@ -746,15 +744,8 @@ void TwoFourTree<K,C,A>::Node::addWithOverflow (K&& key, std::unique_ptr<Node> n
 
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
-	if (index < 0 || index >= num_keys_) {
-		std::cout << "extractValue: index out of bounds! index = " << index << std::endl;
-		return Key(); // TODO: index out of bounds
-	}
-
-	if (!isLeaf()) {
-		std::cout << "extractValue: called on an internal node!\n";
-		return Key(); // TODO: logic error
-	}
+	assert(index > 0 && index < num_keys_);
+	assert(isLeaf()); // do not call this on an internal node
 
 	Key k = std::move(keys_[index]);
 
@@ -766,93 +757,42 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 }
 
 /**
- * Traverses the children trying to find value
- * Returns a pair: a boolean indicating whether the value exists in the node or not,
- * and a pointer to a node that would contain the value if it did exist
+ * Traverses the children trying to find specified key
+ * Returns the node that contains it and the index of the key
+ *
+ * If the key doesn't exist, it will return the node that should
+ * have contained it (guaranteed to be a leaf node) and -1 as index
  */
 template<class Key, class C, class A>
-std::pair<typename TwoFourTree<Key,C,A>::Node *, bool> TwoFourTree<Key,C,A>::Node::getNodeContainingKey (const Key& key){
+std::pair<typename TwoFourTree<Key,C,A>::Node *, int> TwoFourTree<Key,C,A>::Node::findKey (const Key& key){
+	const int doesntContain = -1;
 	Node * currentNode = this;
 
 	while (!currentNode->isLeaf()) {
 
 		for (int i = 0; i < currentNode->num_keys_; i++) { // iterate over each key / child
 			if (key < currentNode->keys_[i]) {
-				if (!currentNode->children_[i]) { // if child doesn't exist yet
-					currentNode->children_[i].reset(new Node(currentNode)); // create child
-
-					// child must be leaf, stop looking
-					return std::make_pair(currentNode->children_[i].get(), false);
-				}
 				currentNode = currentNode->children_[i].get();
 				goto foundCorrectChild; // sue me
 
 			} else if (key == currentNode->keys_[i]) {
-				// stop looking
-				return std::make_pair(this, true);
+				return std::make_pair(this, i); // stop looking
 			}
 		}
 
 		// if we make it here then value is greater than everything in node. Next node is to the right.
-		{
-			const int rightmost_child_idx = currentNode->num_keys_;
-			if (!currentNode->children_[rightmost_child_idx]) { // if child doesn't exist yet
-				Node *newNode = new Node(currentNode);
-				currentNode->children_[rightmost_child_idx].reset(newNode); // create child
-
-				// child must be leaf, stop looking
-				return std::make_pair(currentNode->children_[rightmost_child_idx].get(), false);
-			}
-			currentNode = currentNode->children_[rightmost_child_idx].get();
-		}
+		currentNode = currentNode->children_[currentNode->num_keys_].get();
 
 	foundCorrectChild:
+		assert (currentNode != nullptr); // property of TwoFourTree - internal nodes must have num_keys + 1 children
 		continue;
 	}
 
-	return std::make_pair(currentNode, currentNode->containsKey(key));
-}
+	for (int i=0; i < currentNode->num_keys_; i++)
+		if (key == currentNode->keys_[i])
+			return std::make_pair(currentNode, i);
 
-
-template<class K, class C, class A>
-std::unique_ptr<typename TwoFourTree<K,C,A>::Node> TwoFourTree<K,C,A>::Node::extractChild(int index) {
-	std::cout << "extractChild: dangerous function to use, deprecate this ASAP\n";
-	return std::move(children_[index]);
-}
-
-//
-template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::addChild(std::unique_ptr<Node> newChild){
-	if (newChild->num_keys_ == 0) {
-		std::cout << "Logic error: If there aren't any keys in the new child don't give it to me please\n";
-		return false;
-	}
-
-	K& minChildValue = newChild->keys_[0];
-
-	for (int i=0; i < num_keys_; i++) {
-		if (minChildValue < keys_[i]) { // i shall be the child index
-			if (children_[i]) {// child already exists
-				std::cout << "Logic error: Trying to add child but similar exists\n";
-				return false;
-			}
-
-			newChild->parent_ = this;
-			children_[i] = std::move(newChild);
-			return true;
-		}
-	}
-	// child is bigger than all
-
-	// check if there is already a child here
-	if (children_[num_keys_]) {
-		std::cout << "Logic error: Trying to add child but similar exists 2\n";
-		return false;
-	}
-
-	newChild->parent_ = this;
-	children_[num_keys_] = std::move(newChild);
-	return true;
+	return std::make_pair(currentNode, doesntContain);
 }
 
 template<class K, class C, class A>
@@ -875,11 +815,6 @@ bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 		if (keys_[i] == k)
 			return true;
 	return false;
-}
-
-template <class K, class C, class A>
-typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::getParent() {
-	return parent_;
 }
 
 
