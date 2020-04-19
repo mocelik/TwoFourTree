@@ -14,6 +14,11 @@
 #include <memory>
 #include <type_traits>
 
+#include <deque> // debug / print
+#include <cassert>
+#include <sstream>
+#include <iostream>
+
 namespace tft {
 
 
@@ -25,7 +30,7 @@ public:
 	/* CONSTRUCTORS */
 
 	// default
-	TwoFourTree();
+	TwoFourTree() = default;
 	explicit TwoFourTree(const Compare &comp, const Allocator &alloc =
 			Allocator());
 	explicit TwoFourTree(const Allocator &alloc);
@@ -75,11 +80,11 @@ public:
 		typedef typename Allocator::pointer pointer;
 		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
 
-		iterator();
-		iterator(const iterator&);
-		~iterator();
+		iterator() = default;
+		iterator(const iterator&) = default;
+		~iterator() = default;
 
-		iterator& operator=(const iterator&);
+		iterator& operator=(const iterator&) = default;
 		bool operator==(const iterator&) const;
 		bool operator!=(const iterator&) const;
 		bool operator<(const iterator&) const; //optional
@@ -110,10 +115,10 @@ public:
 		typedef typename Allocator::pointer pointer;
 		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
 
-		const_iterator();
+		const_iterator() = default;
 		const_iterator(const const_iterator&);
 		const_iterator(const iterator&);
-		~const_iterator();
+		~const_iterator() = default;
 
 		const_iterator& operator=(const const_iterator&);
 		bool operator==(const const_iterator&) const;
@@ -278,34 +283,104 @@ public:
 	value_compare value_comp() const;
 	key_compare key_comp() const;
 
+	// debug
+	void print() const;
+	bool validate();
+
 	protected:
-	Allocator the_allocator;
-	Compare  the_comparator;
+	/**
+	 * The internal data structure
+	 * Each node contains 1 to 3 Keys
+	 * Each node has a parent node (except for the root)
+	 * Each node contains 0 to 4 child nodes
+	 * Each node is internally sorted
+	 */
+	class Node {
+	private:
+		static constexpr const int kMaxNumKeys = 3;
+		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
+		int num_keys_ { 0 };
+		std::array<Key, kMaxNumKeys> keys_;
+		std::array<std::unique_ptr<Node>, kMaxNumChildren> children_;
+		Node *parent_ { nullptr };
+
+	public:
+		Node() = default;
+		bool isFull();
+		bool isLeaf();
+		bool containsKey(const Key& k);
+		std::pair<Node*, int> findKey(const Key &key);
+
+		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
+		Key extractValue(int index);
+		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
+
+		// debug
+		void print();
+		void printAll();
+		std::string getString();
+		bool validateRelationships();
+
+	private:
+		explicit Node(Node *parent) :
+				parent_(parent) {
+		}
+
+		std::pair<Node*, int> addValue(Key&& value);
+		void overflowRecursive(Key&& value, std::unique_ptr<Node> childToRight, std::unique_ptr<Node>& root);
+	};
+
+	protected:
+	Allocator allocator_;
+	Compare  comparator_;
+
+	iterator last_node_;
+	std::unique_ptr<Node> root_;
 };
+} /* namespace tft */
+
+
+/**************************************************************************************************************
+ *                                          IMPLEMENTATION                                                    *
+ **************************************************************************************************************/
+
+#include "debug_operations.ipp"
+#include "node_operations.ipp"
+
+namespace tft {
+
+template<class Key, class C, class A>
+bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
+	if (!root_)
+		return false;
+
+	std::pair<Node*, int> pr = root_->findKey(key);
+	return (pr.first != nullptr && pr.second != -1);
+}
+
+/**
+ * Inserts a value into the tree
+ * TODO: Return correct iterator
+ */
+template<class K, class C, class A>
+std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree<K,C,A>::value_type &&value){
+
+	if (!root_) {
+		root_.reset(new Node());
+		root_->addValue(std::move(value), root_);
+		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
+	}
+
+	std::pair<Node *, int> pr = root_->findKey(value);
+
+	if (pr.first == nullptr || pr.second != -1) // value already exists
+		return std::make_pair(TwoFourTree<K, C, A>::iterator(), false);
+
+	pr.first->addValue(std::move(value), root_); // root_ may change
+	return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
+}
+
 
 } // namespace tft
-
-template <class Key, class Compare, class Alloc>
-bool operator== (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-template <class Key, class Compare, class Alloc>
-bool operator!= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-template <class Key, class Compare, class Alloc>
-bool operator< (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-template <class Key, class Compare, class Alloc>
-bool operator<= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-template <class Key, class Compare, class Alloc>
-bool operator> (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-template <class Key, class Compare, class Alloc>
-bool operator>= (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
-// TODO: consider implementing three way compare
-//template <class Key, class Compare, class Alloc>
-//? operator<=> (const tft::TwoFourTree<Key,Compare,Alloc>& lhs, const tft::TwoFourTree<Key,Compare,Alloc>& rhs);
-
 
 #endif /* SRC_TFTREE_HPP_ */
