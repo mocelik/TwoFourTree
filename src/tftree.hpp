@@ -14,6 +14,7 @@
 #include <memory>
 #include <type_traits>
 
+#include <set>
 #include <deque> // debug / print
 #include <cassert>
 #include <sstream>
@@ -63,64 +64,30 @@ public:
     typedef Compare key_compare;
     typedef Compare value_compare;
 
-	// Allocator
+	// typedefs
 	typedef Allocator allocator_type;
-	typedef typename Allocator::value_type value_type;
-	typedef typename Allocator::reference reference;
+	typedef typename Allocator::value_type 		value_type;
+	typedef typename Allocator::size_type 		size_type;
+	typedef typename Allocator::difference_type	difference_type;
+	typedef typename Allocator::reference 		reference;
+	typedef typename Allocator::pointer 		pointer;
 	typedef typename Allocator::const_reference const_reference;
-	typedef typename Allocator::difference_type difference_type;
-	typedef typename Allocator::size_type size_type;
+	typedef typename Allocator::const_pointer 	const_pointer;
 
-	// Iterator
-	class iterator {
-	public:
-		typedef typename Allocator::difference_type difference_type;
-		typedef typename Allocator::value_type value_type;
-		typedef typename Allocator::reference reference;
-		typedef typename Allocator::pointer pointer;
-		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
-
-		iterator() = default;
-		iterator(const iterator&) = default;
-		~iterator() = default;
-
-		iterator& operator=(const iterator&) = default;
-		bool operator==(const iterator&) const;
-		bool operator!=(const iterator&) const;
-		bool operator<(const iterator&) const; //optional
-		bool operator>(const iterator&) const; //optional
-		bool operator<=(const iterator&) const; //optional
-		bool operator>=(const iterator&) const; //optional
-
-		iterator& operator++();
-		iterator operator++(int); //optional
-		iterator& operator--(); //optional
-		iterator operator--(int); //optional
-		iterator& operator+=(size_type); //optional
-		iterator operator+(size_type) const; //optional
-//		friend iterator operator+ <>(size_type, const iterator&); //optional
-		iterator& operator-=(size_type); //optional
-		iterator operator-(size_type) const; //optional
-		difference_type operator-(iterator) const; //optional
-
-		reference operator*() const;
-		pointer operator->() const;
-		reference operator[](size_type) const; //optional
-	};
+protected:
+	class Node;
+public:
 	class const_iterator {
 	public:
-		typedef typename Allocator::difference_type difference_type;
-		typedef typename Allocator::value_type value_type;
-		typedef typename Allocator::reference reference;
-		typedef typename Allocator::pointer pointer;
-		typedef std::bidirectional_iterator_tag iterator_category; //or another tag
+		typedef std::bidirectional_iterator_tag iterator_category;
+		void print() const;
 
 		const_iterator() = default;
-		const_iterator(const const_iterator&);
-		const_iterator(const iterator&);
+		const_iterator(const const_iterator&) = default;
+		const_iterator& operator=(const const_iterator& other) = default;
+		const_iterator& operator=(const_iterator&& other) = default;
 		~const_iterator() = default;
 
-		const_iterator& operator=(const const_iterator&);
 		bool operator==(const const_iterator&) const;
 		bool operator!=(const const_iterator&) const;
 		bool operator<(const const_iterator&) const; //optional
@@ -139,10 +106,19 @@ public:
 		const_iterator operator-(size_type) const; //optional
 		difference_type operator-(const_iterator) const; //optional
 
-		reference operator*() const;
-		pointer operator->() const;
-		reference operator[](size_type) const; //optional
+		const_reference operator*() const;
+		const_pointer operator->() const;
+		const_reference operator[](size_type) const; //optional
+
+		friend TwoFourTree<Key,Compare,Allocator>;
+	private:
+		const_iterator(Node * node, int idx) : node_(node), idx_(idx) {}
+		const_iterator(std::pair<Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
+		const Node *node_ { nullptr };
+		int idx_ { -1 };
 	};
+
+	typedef const_iterator iterator; // do not allow modification
 
 	typedef std::reverse_iterator<iterator> reverse_iterator; //optional
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator; //optional
@@ -154,28 +130,24 @@ public:
 	/**
 	 * begin() -> return an iterator to the beginning
 	 */
-	iterator begin() noexcept;
 	const_iterator begin() const noexcept;
 	const_iterator cbegin() const noexcept;
 
 	/**
 	 * end() -> return an iterator to an object past the end
 	 */
-	iterator end() noexcept;
 	const_iterator end() const noexcept;
 	const_iterator cend() const noexcept;
 
 	/**
 	 * rbegin() -> return an iterator to the first element of the reversed set
 	 */
-	reverse_iterator rbegin() noexcept;
 	const_reverse_iterator rbegin() const noexcept;
 	const_reverse_iterator crbegin() const noexcept;
 
 	/**
 	 * rend() -> return an iterator to the element following the last element of the reversed set.
 	 */
-	reverse_iterator rend() noexcept;
 	const_reverse_iterator rend() const noexcept;
 	const_reverse_iterator crend() const noexcept;
 
@@ -219,8 +191,7 @@ public:
 
 	// erase
 	// removes the element at pos
-	iterator erase(const_iterator pos); // c++11
-	iterator erase(iterator pos); // c++17
+	iterator erase(iterator pos);
 	iterator erase(const_iterator first, const_iterator last);
 	size_type erase(const key_type &key);
 
@@ -259,23 +230,17 @@ public:
 	template<class K> bool contains (const K& x) const;
 
 	// equal_range
-	std::pair<iterator, iterator> equal_range(const Key& x);
 	std::pair<const_iterator, const_iterator> equal_range (const Key& x) const;
-	template<class K> std::pair<iterator, iterator> equal_range(const K &x);
 	template<class K> std::pair<const_iterator, const_iterator> equal_range(const K &x) const;
 
 	// lower_bound
 	// returns an iterator pointing to the first element that is not less than the key
-	iterator lower_bound (const Key& x);
 	const_iterator lower_bound (const Key&x ) const;
-	template <class K> iterator lower_bound(const K&x);
 	template <class K> const_iterator lower_bound(const K&x) const;
 
 	// upper_bound
 	// returns an iterator pointing to the first element that is greater than key
-	iterator upper_bound (const Key& x);
 	const_iterator upper_bound (const Key&x ) const;
-	template <class K> iterator upper_bound(const K&x);
 	template <class K> const_iterator upper_bound(const K&x) const;
 
 	// value_comp, key_comp
@@ -285,7 +250,7 @@ public:
 
 	// debug
 	void print() const;
-	bool validate();
+	bool validate() const;
 
 	protected:
 	/**
@@ -296,6 +261,7 @@ public:
 	 * Each node is internally sorted
 	 */
 	class Node {
+		friend const_iterator;
 	private:
 		static constexpr const int kMaxNumKeys = 3;
 		static constexpr const int kMaxNumChildren = kMaxNumKeys + 1;
@@ -306,8 +272,9 @@ public:
 
 	public:
 		Node() = default;
-		bool isFull();
-		bool isLeaf();
+		bool isFull() const;
+		bool isLeaf() const;
+		bool isLargestChild() const;
 		bool containsKey(const Key& k);
 		std::pair<Node*, int> findKey(const Key &key);
 
@@ -316,10 +283,10 @@ public:
 		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		// debug
-		void print();
-		void printAll();
-		std::string getString();
-		bool validateRelationships();
+		void print() const;
+		void printAll() const;
+		std::string getString() const;
+		bool validateRelationships() const;
 
 	private:
 		explicit Node(Node *parent) :
@@ -331,13 +298,22 @@ public:
 	};
 
 	protected:
+	std::unique_ptr<Node> root_;
+	iterator first_node_;
+	iterator last_node_;
+
+	static constexpr const int kInvalidIdx = -1;
+	static constexpr const int kAfterEndIdx = -2;
+	static constexpr const int kBeforeBeginIdx = -3;
+
+	inline static const const_iterator end_iterator_ { nullptr, kAfterEndIdx };
+	inline static const const_iterator rend_iterator_{ nullptr, kBeforeBeginIdx };
+
 	Allocator allocator_;
 	Compare  comparator_;
-
-	iterator last_node_;
-	std::unique_ptr<Node> root_;
 };
 } /* namespace tft */
+
 
 
 /**************************************************************************************************************
@@ -367,8 +343,8 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 
 	if (!root_) {
 		root_.reset(new Node());
-		root_->addValue(std::move(value), root_);
-		return std::make_pair(TwoFourTree<K,C,A>::iterator(), true);
+		first_node_ = (root_->addValue(std::move(value), root_));
+		return std::make_pair(first_node_, true);
 	}
 
 	std::pair<Node *, int> pr = root_->findKey(value);
@@ -380,6 +356,89 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 	return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
 }
 
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::begin() const noexcept {
+	return cbegin();
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::cbegin() const noexcept {
+	return first_node_;
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::end() const noexcept {
+	return cend();
+}
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::cend() const noexcept {
+	return end_iterator_;
+}
+
+template<class K, class C, class A>
+bool TwoFourTree<K,C,A>::const_iterator::operator==(const const_iterator& rhs) const {
+	return (node_ == rhs.node_ && idx_ == rhs.idx_);
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_reference TwoFourTree<K,C,A>::iterator::operator*() const {
+	assert(idx_ < (node_->num_keys_));
+	return node_->keys_.at(idx_);
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator::operator++() {
+	assert (idx_ < node_->num_keys_);
+
+	if (node_->children_[idx_+1]) { // if there is a child after this key
+		// go all the way to the leaf
+		const Node * node = node_->children_[idx_+1].get();
+		while (!node->isLeaf()) {
+			node = node->children_[0].get();
+		}
+		node_ = node;
+		idx_ = 0;
+		return *this;
+
+	} else if (idx_ < (node_->num_keys_ - 1)) { // no child -> go right if there is something to the right
+		assert(node_->isLeaf());
+		++idx_;
+		return *this;
+
+	} else if (idx_ == node_->num_keys_ - 1) { // no child, nothing to the right -> go up
+
+		// need a loop in case we are right-most child and need to go up multiple levels
+		// possibly all the way up to parent
+		while (true) {
+			const Node *parent = node_->parent_;
+
+			if (parent == nullptr) {
+				node_ = nullptr;
+				idx_ = TwoFourTree::kAfterEndIdx;
+				return *this;
+			}
+
+			for (int i = 0; i < parent->num_keys_; i++) {
+				if (parent->children_[i].get() == node_) {
+					node_ = parent;
+					idx_ = i;
+					return *this;
+				}
+			}
+
+			// node_ is the biggest child of parent_
+			// repeat same process on upper level
+			assert(parent->children_[parent->num_keys_].get() == node_);
+			node_ = parent;
+			continue;
+		}
+	} else { // no logical path to get here
+		node_->validateRelationships();
+		assert(false);
+	}
+
+	return *this;
+}
 
 } // namespace tft
 

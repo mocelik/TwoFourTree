@@ -17,7 +17,7 @@ namespace tft {
  * Verify all nodes have the correct child-parent relationship
  */
 template <class K, class C, class A>
-bool TwoFourTree<K,C,A>::validate() {
+bool TwoFourTree<K,C,A>::validate() const {
 	return root_->validateRelationships();
 }
 
@@ -26,11 +26,11 @@ bool TwoFourTree<K,C,A>::validate() {
  * every child knows who its parent is
  */
 template <class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::validateRelationships() {
-	Node * node = this;
+bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
+	const Node * node = this;
 	bool rc = true;
 	// parent -> child
-	std::deque<std::pair<typename TwoFourTree<K,C,A>::Node*, typename TwoFourTree<K,C,A>::Node*>> allNodes;
+	std::deque<std::pair<const TwoFourTree::Node*, const TwoFourTree::Node*>> allNodes;
 	allNodes.push_back(std::make_pair(nullptr, node));
 
 	while (!allNodes.empty()) {
@@ -72,7 +72,7 @@ void TwoFourTree<K,C,A>::print() const{
 }
 
 template<class K, class C, class A>
-void TwoFourTree<K,C,A>::Node::printAll(){
+void TwoFourTree<K,C,A>::Node::printAll() const {
 
 	Node end_of_level(nullptr);
 	Node null_node(nullptr);
@@ -87,14 +87,14 @@ void TwoFourTree<K,C,A>::Node::printAll(){
 	 * 		2. A node indicating the end of that level
 	 * 		3. An empty node (e.g. 4th child of node with 2 elements)
 	 */
-	std::deque<Node*> nodes_to_be_printed;
+	std::deque<const Node*> nodes_to_be_printed;
 
 	nodes_to_be_printed.push_back(this);
 	nodes_to_be_printed.push_back(&end_of_level);
 	nodes_to_be_printed.push_back(&children_end);
 
 	while (!nodes_to_be_printed.empty()) {
-		Node *node = nodes_to_be_printed.front();
+		const Node *node = nodes_to_be_printed.front();
 		nodes_to_be_printed.pop_front();
 
 		if (node == &end_of_level) { // when we come across this, we know we reached the end of this line
@@ -132,7 +132,7 @@ void TwoFourTree<K,C,A>::Node::printAll(){
 }
 
 template <class K, class C, class A>
-std::string TwoFourTree<K,C,A>::Node::getString() {
+std::string TwoFourTree<K,C,A>::Node::getString() const {
 	std::stringstream ss;
 	for (int i=0; i < num_keys_-1; i++) {
 		ss <<keys_[i] << ",";
@@ -143,11 +143,28 @@ std::string TwoFourTree<K,C,A>::Node::getString() {
 
 // useful when debugging, not used as part of other functions
 template <class K, class C, class A>
-void TwoFourTree<K,C,A>::Node::print() {
+void TwoFourTree<K,C,A>::Node::print() const {
 	for (int i=0; i < num_keys_; i++) {
 		std::cout << "node[" << i << "]: " << keys_[i] << "\t";
 	}
 	std::cout << std::endl;
+}
+
+template <class K, class C, class A>
+void TwoFourTree<K,C,A>::const_iterator::print() const {
+	std::cout << "it: ";
+	if (node_ == nullptr) {
+		if (idx_ == TwoFourTree::kAfterEndIdx) {
+			std::cout << "end iterator\n";
+		} else if (idx_ == TwoFourTree::kBeforeBeginIdx) {
+			std::cout << "rend iterator\n";
+		} else {
+			std::cout << "nullptr, idx = " << idx_ << std::endl;
+		}
+	} else {
+		std::cout << "n:" << node_->getString() << " idx_:" << idx_
+				<< std::endl;
+	}
 }
 
 } /* namespace tft */

@@ -299,18 +299,19 @@ std::pair<typename TwoFourTree<Key,C,A>::Node *, int> TwoFourTree<Key,C,A>::Node
 }
 
 template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::isFull() {
+bool TwoFourTree<K,C,A>::Node::isFull() const {
 	return (num_keys_ == kMaxNumKeys);
 }
 
 template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::isLeaf() {
+bool TwoFourTree<K,C,A>::Node::isLeaf() const {
 	for (int i = 0; i < kMaxNumChildren; i++) {
 		if (children_[i])
 			return false;
 	}
 	return true;
 }
+
 
 template<class  K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
