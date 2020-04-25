@@ -299,15 +299,16 @@ public:
 
 	protected:
 	std::unique_ptr<Node> root_;
-	iterator first_node_;
-	iterator last_node_;
+
 
 	static constexpr const int kInvalidIdx = -1;
 	static constexpr const int kAfterEndIdx = -2;
 	static constexpr const int kBeforeBeginIdx = -3;
 
-	inline static const const_iterator end_iterator_ { nullptr, kAfterEndIdx };
-	inline static const const_iterator rend_iterator_{ nullptr, kBeforeBeginIdx };
+	iterator begin_iterator_;
+	iterator rbegin_iterator_;
+	inline static const const_iterator past_end_iterator_ { nullptr, kAfterEndIdx };
+	inline static const const_iterator past_rend_iterator_{ nullptr, kBeforeBeginIdx };
 
 	Allocator allocator_;
 	Compare  comparator_;
@@ -343,8 +344,8 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 
 	if (!root_) {
 		root_.reset(new Node());
-		first_node_ = (root_->addValue(std::move(value), root_));
-		return std::make_pair(first_node_, true);
+		begin_iterator_ = (root_->addValue(std::move(value), root_));
+		return std::make_pair(begin_iterator_, true);
 	}
 
 	std::pair<Node *, int> pr = root_->findKey(value);
@@ -363,7 +364,7 @@ typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::begin() const no
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::cbegin() const noexcept {
-	return first_node_;
+	return begin_iterator_;
 }
 
 template<class K, class C, class A>
@@ -372,7 +373,7 @@ typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::end() const noex
 }
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::cend() const noexcept {
-	return end_iterator_;
+	return past_end_iterator_;
 }
 
 template<class K, class C, class A>
@@ -408,7 +409,7 @@ typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator:
 	} else if (idx_ == node_->num_keys_ - 1) { // no child, nothing to the right -> go up
 
 		// need a loop in case we are right-most child and need to go up multiple levels
-		// possibly all the way up to parent
+		// possibly all the way up to root
 		while (true) {
 			const Node *parent = node_->parent_;
 
