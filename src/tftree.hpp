@@ -81,6 +81,11 @@ public:
 	public:
 		typedef std::bidirectional_iterator_tag iterator_category;
 		void print() const;
+		std::string getString() const;
+		friend std::ostream& operator<<(std::ostream& os, const const_iterator& it) {
+			os << it.getString();
+			return os;
+		}
 
 		const_iterator() = default;
 		const_iterator(const const_iterator&) = default;
@@ -249,8 +254,13 @@ public:
 	key_compare key_comp() const;
 
 	// debug
+	std::string getString() const;
 	void print() const;
 	bool validate() const;
+	friend std::ostream& operator<<(std::ostream& os, const TwoFourTree& tree) {
+		os << tree.getString();
+		return os;
+	}
 
 	protected:
 	/**
@@ -286,7 +296,12 @@ public:
 		void print() const;
 		void printAll() const;
 		std::string getString() const;
+		std::string getStringAll() const;
 		bool validateRelationships() const;
+		friend std::ostream& operator<<(std::ostream &os, const Node &n) {
+			os << n.getString();
+			return os;
+		}
 
 	private:
 		explicit Node(Node *parent) :

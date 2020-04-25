@@ -67,12 +67,22 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
  * Prints the tree level by level
  */
 template<class K, class C, class A>
+std::string TwoFourTree<K,C,A>::getString() const{
+	return root_->getStringAll();
+}
+
+template<class K, class C, class A>
 void TwoFourTree<K,C,A>::print() const{
 	root_->printAll();
 }
 
 template<class K, class C, class A>
 void TwoFourTree<K,C,A>::Node::printAll() const {
+	std::cout << getStringAll();
+}
+
+template<class K, class C, class A>
+std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
 	Node end_of_level(nullptr);
 	Node null_node(nullptr);
@@ -128,7 +138,8 @@ void TwoFourTree<K,C,A>::Node::printAll() const {
 		nodes_to_be_printed.push_back(&children_end);
 	} // end loop
 
-	std::cout << ss.rdbuf() << std::endl;
+	ss << std::endl;
+	return ss.str();
 }
 
 template <class K, class C, class A>
@@ -144,29 +155,32 @@ std::string TwoFourTree<K,C,A>::Node::getString() const {
 // useful when debugging, not used as part of other functions
 template <class K, class C, class A>
 void TwoFourTree<K,C,A>::Node::print() const {
-	for (int i=0; i < num_keys_; i++) {
-		std::cout << "node[" << i << "]: " << keys_[i] << "\t";
-	}
-	std::cout << std::endl;
+	std::cout << getString() << std::endl;
 }
 
 template <class K, class C, class A>
 void TwoFourTree<K,C,A>::const_iterator::print() const {
-	std::cout << "it: ";
-	if (node_ == nullptr) {
-		if (idx_ == TwoFourTree::kAfterEndIdx) {
-			std::cout << "end iterator\n";
-		} else if (idx_ == TwoFourTree::kBeforeBeginIdx) {
-			std::cout << "rend iterator\n";
-		} else {
-			std::cout << "nullptr, idx = " << idx_ << std::endl;
-		}
-	} else {
-		std::cout << "n:" << node_->getString() << " idx_:" << idx_
-				<< std::endl;
-	}
+	std::cout << getString() << std::endl;
 }
 
+template <class K, class C, class A>
+std::string TwoFourTree<K,C,A>::const_iterator::getString() const {
+	std::stringstream ss;
+	ss << "it: ";
+	if (node_ == nullptr) {
+		ss << "nullptr, idx = " << idx_ ;
+
+	} else if (idx_ == node_->num_keys_) {
+		ss << "end iterator (node:" << node_->getString() << ")" ;
+
+	} else if (idx_ == -1) {
+		ss << "rend iterator (node:" << node_->getString() << ")";
+
+	} else {
+		ss << "n:" << node_->getString() << " idx_:" << idx_;
+	}
+	return ss.str();
+}
 } /* namespace tft */
 
 #endif /* SRC_DEBUG_OPERATIONS_IPP_ */
