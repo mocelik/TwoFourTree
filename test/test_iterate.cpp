@@ -109,12 +109,23 @@ TEST_CASE ("Iterate to multiple neighbours", "[iterate][insert]") {
 		tree.insert(std::move(i));
 	}
 
-	tft::TwoFourTree<int>::const_iterator it = tree.begin();
-	for (int i=0; i < num_elems; i++ ) {
-		CHECK(*it == i);
-		++it;
+	{
+		tft::TwoFourTree<int>::const_iterator it = tree.begin();
+		for (int i = 0; i < num_elems; i++) {
+			CHECK(*it == i);
+			++it;
+		}
+		CHECK(it == tree.end());
 	}
-	CHECK(it == tree.end());
+
+	{
+		tft::TwoFourTree<int>::const_reverse_iterator rit = tree.rbegin();
+		for (int i = num_elems - 1; i >= 0; i--) {
+			CHECK(*rit == i);
+			++rit;
+		}
+		CHECK(rit == tree.rend());
+	}
 }
 
 /**
@@ -128,17 +139,19 @@ TEST_CASE( "Iterate to multiple neighbours and parents", "[iterate][insert]" ) {
 
 	SECTION("Add in order") {
 		for (int i = 0; i < num_tests; i++) {
-			tree.insert(std::move(i));
+			tft::TwoFourTree<int>::const_iterator it = tree.insert(std::move(i)).first;
+			CHECK(*it == i);
 		}
 	}
 
 	SECTION("Add in reverse order") {
 		for (int i = num_tests - 1; i >= 0; i--) {
-			tree.insert(std::move(i));
+			tft::TwoFourTree<int>::const_iterator it = tree.insert(std::move(i)).first;
+			CHECK(*it == i);
 		}
 	}
 
-	{ // iterate beginning to end
+	{ // iterate
 		tft::TwoFourTree<int>::const_iterator it = tree.begin();
 		for (int i = 0; i < num_tests; i++) {
 			CHECK(*it == i);
@@ -147,12 +160,26 @@ TEST_CASE( "Iterate to multiple neighbours and parents", "[iterate][insert]" ) {
 		CHECK(it == tree.end());
 	}
 
-	{ // reverse iterate beginning to end
-		tft::TwoFourTree<int>::const_reverse_iterator it = tree.rbegin();
+	{ // iterate backwards
+		tft::TwoFourTree<int>::const_iterator it = tree.end();
 		for (int i = num_tests-1; i >= 0; i--) {
-			CHECK(*it == i);
-			++it;
+			CHECK(*--it == i);
 		}
-		CHECK(it == tree.rend());
+		CHECK(it == tree.begin());
+	}
+
+	{ // reverse iterate
+		tft::TwoFourTree<int>::const_reverse_iterator rit = tree.rbegin();
+		for (int i = num_tests-1; i >= 0; i--) {
+			CHECK(*rit == i);
+			++rit;
+		}
+		CHECK(rit == tree.rend());
+	}
+
+	{
+		int i = 0;
+		for (const auto& it : tree)
+			CHECK(it == i++);
 	}
 }
