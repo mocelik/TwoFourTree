@@ -21,9 +21,15 @@ TEST_CASE( "Simple Iterate", "[iterate][insert]" ) {
 	tft::TwoFourTree<int> tree;
 
 	// first few values will go into root
-	tree.insert(1);
-	tree.insert(2);
-	tree.insert(3);
+	tft::TwoFourTree<int>::iterator rc_check;
+	rc_check = tree.insert(1).first;
+	CHECK(*rc_check == 1);
+
+	rc_check = tree.insert(2).first;
+	CHECK(*rc_check == 2);
+
+	rc_check = tree.insert(3).first;
+	CHECK(*rc_check == 3);
 
 	tft::TwoFourTree<int>::iterator it = tree.begin();
 

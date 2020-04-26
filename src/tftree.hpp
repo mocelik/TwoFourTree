@@ -119,6 +119,7 @@ public:
 	private:
 		const_iterator(Node * node, int idx) : node_(node), idx_(idx) {}
 		const_iterator(std::pair<Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
+		const_iterator(std::pair<const Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
 		const Node *node_ { nullptr };
 		int idx_ { -1 };
 	};
@@ -284,9 +285,11 @@ public:
 		Node() = default;
 		bool isFull() const;
 		bool isLeaf() const;
+		Node* getParent() const;
 		bool isLargestChild() const;
 		bool containsKey(const Key& k);
 		std::pair<Node*, int> findKey(const Key &key);
+		std::pair<const Node*, int> findLargest() const;
 
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
 		Key extractValue(int index);
@@ -315,15 +318,10 @@ public:
 	protected:
 	std::unique_ptr<Node> root_;
 
-
-	static constexpr const int kInvalidIdx = -1;
-	static constexpr const int kAfterEndIdx = -2;
-	static constexpr const int kBeforeBeginIdx = -3;
-
 	iterator begin_iterator_;
 	iterator rbegin_iterator_;
-	inline static const const_iterator past_end_iterator_ { nullptr, kAfterEndIdx };
-	inline static const const_iterator past_rend_iterator_{ nullptr, kBeforeBeginIdx };
+	iterator past_end_iterator_;
+	iterator past_rend_iterator_;
 
 	Allocator allocator_;
 	Compare  comparator_;
@@ -355,21 +353,36 @@ bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
  * TODO: Return correct iterator
  */
 template<class K, class C, class A>
-std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree<K,C,A>::value_type &&value){
+std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree::value_type &&value){
 
 	if (!root_) {
 		root_.reset(new Node());
 		begin_iterator_ = (root_->addValue(std::move(value), root_));
+		past_end_iterator_ = begin_iterator_ + 1;
 		return std::make_pair(begin_iterator_, true);
 	}
 
 	std::pair<Node *, int> pr = root_->findKey(value);
 
 	if (pr.first == nullptr || pr.second != -1) // value already exists
-		return std::make_pair(TwoFourTree<K, C, A>::iterator(), false);
+		return std::make_pair(iterator(pr), false);
 
-	pr.first->addValue(std::move(value), root_); // root_ may change
-	return std::make_pair(TwoFourTree<K, C, A>::iterator(), true);
+	if (pr.first == past_end_iterator_.node_) { // this node contains the maximum value so we need special handling
+		pr = pr.first->addValue(std::move(value), root_);
+
+		// the maximum may be in the same node or it may have moved to a neighbour
+		// search for it starting from the parent to ensure the correct node is found
+		if (pr.first->getParent() != nullptr)
+			past_end_iterator_ = iterator(pr.first->getParent()->findLargest()) + 1;
+		else
+			past_end_iterator_ = iterator(pr.first->findLargest()) + 1;
+
+		return std::make_pair(iterator(pr), true);
+	}
+
+	pr = pr.first->addValue(std::move(value), root_);
+
+	return std::make_pair(iterator(pr), true);
 }
 
 template<class K, class C, class A>
@@ -404,7 +417,21 @@ typename TwoFourTree<K,C,A>::const_reference TwoFourTree<K,C,A>::iterator::opera
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator::operator++() {
-	assert (idx_ < node_->num_keys_);
+	assert (idx_ <= node_->num_keys_);
+
+	{ // SPECIAL CASES
+		if (idx_ == node_->num_keys_) { // if this is the end_iterator
+			// we do not need to define this behaviour and could let it crash and burn
+			// but lets be nice and return without doing anything instead
+			return *this;
+		}
+
+		if (idx_ == -1) { // if this is the rbegin iterator
+			idx_ = 0;
+			// node_ should already be correctly set
+			return *this;
+		}
+	}
 
 	if (node_->children_[idx_+1]) { // if there is a child after this key
 		// go all the way to the leaf
@@ -424,16 +451,22 @@ typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator:
 	} else if (idx_ == node_->num_keys_ - 1) { // no child, nothing to the right -> go up
 
 		// need a loop in case we are right-most child and need to go up multiple levels
-		// possibly all the way up to root
+		// possibly all the way up to root. If we DO get to the root, set the iterator
+		// back to the original node and set the idx to one-past-end
+		const Node *begin_node = node_;
 		while (true) {
 			const Node *parent = node_->parent_;
 
+			// check if we are root
 			if (parent == nullptr) {
-				node_ = nullptr;
-				idx_ = TwoFourTree::kAfterEndIdx;
+				// set equal to past_end_iterator
+				node_ = begin_node;
+				idx_ = node_->num_keys_;
+				// leave node_ as is so that operator-- is valid
 				return *this;
 			}
 
+			// If this node is not the biggest child then next value is parent at idx [child idx]
 			for (int i = 0; i < parent->num_keys_; i++) {
 				if (parent->children_[i].get() == node_) {
 					node_ = parent;
@@ -448,12 +481,19 @@ typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator:
 			node_ = parent;
 			continue;
 		}
-	} else { // no logical path to get here
-		node_->validateRelationships();
-		assert(false);
 	}
 
+	// shouldn't reach here
+	assert(false); // unhandled case
 	return *this;
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::const_iterator::operator+(TwoFourTree<K,C,A>::size_type s) const {
+	const_iterator rc (*this); // copy ctor
+	for (auto i = 0; i < s; i++)
+		++rc;
+	return rc;
 }
 
 } // namespace tft

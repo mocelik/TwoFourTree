@@ -321,6 +321,21 @@ bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 	return false;
 }
 
+template<class  K, class C, class A>
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::getParent () const {
+	return parent_;
+}
+
+template<class  K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::findLargest () const {
+	const Node * node = this;
+	while (!node->isLeaf()) {
+		node = node->children_[num_keys_].get(); // rightmost child
+		assert(node != nullptr);
+	}
+	return std::make_pair(node, node->num_keys_ - 1);
+}
+
 } /* namespace tft */
 
 
