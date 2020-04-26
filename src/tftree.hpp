@@ -320,8 +320,6 @@ public:
 
 	iterator begin_iterator_;
 	iterator rbegin_iterator_;
-	iterator past_end_iterator_;
-	iterator past_rend_iterator_;
 
 	Allocator allocator_;
 	Compare  comparator_;
@@ -350,7 +348,6 @@ bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
 
 /**
  * Inserts a value into the tree
- * TODO: Return correct iterator
  */
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::insert(TwoFourTree::value_type &&value){
@@ -358,7 +355,7 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 	if (!root_) {
 		root_.reset(new Node());
 		begin_iterator_ = (root_->addValue(std::move(value), root_));
-		past_end_iterator_ = begin_iterator_ + 1;
+		rbegin_iterator_ = begin_iterator_;
 		return std::make_pair(begin_iterator_, true);
 	}
 
@@ -367,15 +364,17 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 	if (pr.first == nullptr || pr.second != -1) // value already exists
 		return std::make_pair(iterator(pr), false);
 
-	if (pr.first == past_end_iterator_.node_) { // this node contains the maximum value so we need special handling
+	if (pr.first == rbegin_iterator_.node_) { // this node contains the maximum value so we need special handling
 		pr = pr.first->addValue(std::move(value), root_);
 
 		// the maximum may be in the same node or it may have moved to a neighbour
 		// search for it starting from the parent to ensure the correct node is found
-		if (pr.first->getParent() != nullptr)
-			past_end_iterator_ = iterator(pr.first->getParent()->findLargest()) + 1;
-		else
-			past_end_iterator_ = iterator(pr.first->findLargest()) + 1;
+		if (pr.first->getParent() != nullptr) {
+			rbegin_iterator_ = iterator(pr.first->getParent()->findLargest());
+		} else {
+			rbegin_iterator_ = iterator(pr.first->findLargest());
+		}
+
 
 		return std::make_pair(iterator(pr), true);
 	}
@@ -401,7 +400,24 @@ typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::end() const noex
 }
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::cend() const noexcept {
-	return past_end_iterator_;
+	return rbegin_iterator_ + 1;
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::rbegin() const noexcept {
+	return crbegin();
+}
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crbegin() const noexcept {
+	return rbegin_iterator_;
+}
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::rend() const noexcept {
+	return crend();
+}
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crend() const noexcept {
+	return begin_iterator_ - 1;
 }
 
 template<class K, class C, class A>
