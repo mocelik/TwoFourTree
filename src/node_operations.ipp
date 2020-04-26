@@ -299,12 +299,12 @@ std::pair<typename TwoFourTree<Key,C,A>::Node *, int> TwoFourTree<Key,C,A>::Node
 }
 
 template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::isFull() {
+bool TwoFourTree<K,C,A>::Node::isFull() const {
 	return (num_keys_ == kMaxNumKeys);
 }
 
 template<class K, class C, class A>
-bool TwoFourTree<K,C,A>::Node::isLeaf() {
+bool TwoFourTree<K,C,A>::Node::isLeaf() const {
 	for (int i = 0; i < kMaxNumChildren; i++) {
 		if (children_[i])
 			return false;
@@ -312,12 +312,28 @@ bool TwoFourTree<K,C,A>::Node::isLeaf() {
 	return true;
 }
 
+
 template<class  K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 	for (int i=0; i < num_keys_; i++)
 		if (keys_[i] == k)
 			return true;
 	return false;
+}
+
+template<class  K, class C, class A>
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::getParent () const {
+	return parent_;
+}
+
+template<class  K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::findLargest () const {
+	const Node * node = this;
+	while (!node->isLeaf()) {
+		node = node->children_[num_keys_].get(); // rightmost child
+		assert(node != nullptr);
+	}
+	return std::make_pair(node, node->num_keys_ - 1);
 }
 
 } /* namespace tft */
