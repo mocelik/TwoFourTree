@@ -16,6 +16,10 @@
 #include <algorithm>
 #include <numeric>
 
+/**
+ * Used tree:
+ *     [ 1, 2, 3 ]
+ */
 TEST_CASE( "Simple Iterate", "[iterate][insert]" ) {
 
 	tft::TwoFourTree<int> tree;
@@ -31,16 +35,42 @@ TEST_CASE( "Simple Iterate", "[iterate][insert]" ) {
 	rc_check = tree.insert(3).first;
 	CHECK(*rc_check == 3);
 
-	tft::TwoFourTree<int>::iterator it = tree.begin();
+	{
+		tft::TwoFourTree<int>::iterator it = tree.begin();
 
-	CHECK(*it == 1);
-	++it;
-	CHECK(*it == 2);
-	++it;
-	CHECK(*it == 3);
+		CHECK(*it == 1);
+		++it;
+		CHECK(*it == 2);
+		++it;
+		CHECK(*it == 3);
 
-	++it;
-	CHECK(it == tree.end());
+		++it;
+		CHECK(it == tree.end());
+	}
+
+	{ // forward it -> operator--
+		tft::TwoFourTree<int>::iterator it_negative = tree.end();
+		--it_negative;
+		CHECK(*it_negative == 3);
+		CHECK(*--it_negative == 2);
+		CHECK(*--it_negative == 1);
+		CHECK(it_negative == tree.begin());
+	}
+
+
+	{ // reverse it -> operator++
+		tft::TwoFourTree<int>::reverse_iterator rit = tree.rbegin();
+		CHECK(*rit == 3);
+
+		++rit;
+		CHECK(*rit == 2);
+
+		++rit;
+		CHECK(*rit == 1);
+
+		++rit;
+		CHECK(rit == tree.rend());
+	}
 }
 
 /**
@@ -108,10 +138,21 @@ TEST_CASE( "Iterate to multiple neighbours and parents", "[iterate][insert]" ) {
 		}
 	}
 
-	tft::TwoFourTree<int>::const_iterator it = tree.begin();
-	for (int i = 0; i < num_tests; i++) {
-		CHECK(*it == i);
-		++it;
+	{ // iterate beginning to end
+		tft::TwoFourTree<int>::const_iterator it = tree.begin();
+		for (int i = 0; i < num_tests; i++) {
+			CHECK(*it == i);
+			++it;
+		}
+		CHECK(it == tree.end());
 	}
-	CHECK(it == tree.end());
+
+	{ // reverse iterate beginning to end
+		tft::TwoFourTree<int>::const_reverse_iterator it = tree.rbegin();
+		for (int i = num_tests-1; i >= 0; i--) {
+			CHECK(*it == i);
+			++it;
+		}
+		CHECK(it == tree.rend());
+	}
 }

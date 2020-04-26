@@ -171,10 +171,10 @@ std::string TwoFourTree<K,C,A>::const_iterator::getString() const {
 		ss << "nullptr, idx = " << idx_ ;
 
 	} else if (idx_ == node_->num_keys_) {
-		ss << "end iterator (node:" << node_->getString() << ")" ;
+		ss << "after end iterator (node:" << node_->getString() << "), idx = " << idx_ ;
 
 	} else if (idx_ == -1) {
-		ss << "rend iterator (node:" << node_->getString() << ")";
+		ss << "before beginning iterator (node:" << node_->getString() << "), idx = " << idx_;
 
 	} else {
 		ss << "n:" << node_->getString() << " idx_:" << idx_;
