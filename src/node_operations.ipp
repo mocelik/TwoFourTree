@@ -351,8 +351,54 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusion() {
-	std::cerr << "TODO " << __FUNCTION__ << '\n';
-	return std::make_pair(nullptr, 0); // TODO
+	int my_idx = getMyChildIdx();
+	int parent_key_idx;
+
+	// merge with left and parent if there is a node to the left
+	if (my_idx > 0) {
+		auto left = leftSibling();
+		assert(left->num_keys_ == 1); // otherwise we would be rotating clockwise or counter clockwise
+		parent_key_idx = my_idx - 1;
+
+		keys_[1] = std::move(parent_->keys_[parent_key_idx]);
+		keys_[0] = std::move(left->keys_[0]);
+		num_keys_ = 2;
+
+		// move the parent keys over
+		for (int i = parent_key_idx; i < parent_->num_keys_ - 1; i++) {
+			parent_->keys_[i] = std::move(parent_->keys_[i + 1]);
+		}
+
+		// move parent children over (this will delete leftSibling unique_ptr)
+		for (int i=my_idx-1; i < parent_->num_keys_; i++) {
+			parent_->children_[i] = std::move(parent_->children_[i+1]);
+		}
+		parent_->num_keys_--;
+		return getSuccessor(1);
+
+	// fallback to merging with right if we are left-most child
+	} else {
+		auto right = rightSibling();
+		assert(right->num_keys_ == 1);
+
+		parent_key_idx = my_idx;
+		keys_[0] = std::move(parent_->keys_[parent_key_idx]);
+		keys_[1] = std::move(right->keys_[0]);
+		num_keys_ = 2;
+
+		// move parent keys over
+		for (int i = 0; i < parent_->num_keys_ - 1; i++) {
+			parent_->keys_[i] = std::move(parent_->keys_[i + 1]);
+		}
+
+		// move parent children over (this will delete rightSibling unique ptr)
+		for (int i = 1; i < parent_->num_keys_; i++) {
+			parent_->children_[i] = std::move(parent_->children_[i+1]);
+		}
+		parent_->num_keys_--;
+
+		return getSuccessor(1);
+	}
 }
 
 template<class K, class C, class A>
