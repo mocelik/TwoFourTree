@@ -294,18 +294,17 @@ public:
 		Node() = default;
 		bool isFull() const;
 		bool isLeaf() const;
-		Node* getParent() const;
+		const Node* getParent() const;
 		bool isLargestChild() const;
 		bool containsKey(const Key& k);
-		std::pair<Node*, int> findKey(const Key &key);
+		std::pair<Node*, int> findKey(const Key &key); // TODO: return const Node* or make private
 		std::pair<const Node*, int> findLargest() const;
 
 		std::pair<const Node*, int> getSuccessor(int to_index) const;
 		std::pair<const Node*, int> getPredecessor(int to_index) const;
 
+		// TODO: return a const Node*
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
-		Key extractValue(int index);
-		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		// debug
 		void print() const;
@@ -321,6 +320,8 @@ public:
 	private:
 		std::pair<Node*, int> getSuccessor(int to_index);
 		std::pair<Node*, int> getPredecessor(int to_index);
+		Key extractValue(int index);
+		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		explicit Node(Node *parent) :
 				parent_(parent) {

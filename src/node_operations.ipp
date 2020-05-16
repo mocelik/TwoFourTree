@@ -444,7 +444,7 @@ bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 }
 
 template<class  K, class C, class A>
-typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::getParent () const {
+const typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::getParent () const {
 	return parent_;
 }
 
