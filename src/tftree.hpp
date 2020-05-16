@@ -459,9 +459,9 @@ typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::ite
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
 	auto it = find(key);
-//	std::cout << "\nerasing " << key << " from " << it << std::endl;
+	std::cout << "\nerasing " << key << " from " << it << std::endl;
 	erase(it);
-//	std::cout << "\n";
+	std::cout << "\n";
 	return 1; // TODO keep track of size and return it here
 }
 

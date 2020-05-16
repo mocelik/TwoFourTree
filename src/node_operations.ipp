@@ -247,7 +247,7 @@ void TwoFourTree<K,C,A>::Node::overflowRecursive (K&& key, std::unique_ptr<Node>
 
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	assert(index >= 0 && index < num_keys_);
 	assert(isLeaf()); // do not call this on an internal node
 
@@ -263,7 +263,7 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 
 template<class Key, class C, class A>
 std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::removeValue(int at_index){
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	assert(at_index >= 0 && at_index < num_keys_);
 
 	if (isLeaf()) {
@@ -275,7 +275,7 @@ std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeLeaf(int at_index) {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	if (num_keys_ > 1 || parent_ == nullptr) {
 		auto rc = getSuccessor(at_index);
 		extractValue(at_index);
@@ -287,7 +287,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeInternal(int at_index) {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	// swap key with predecessor key
 	// predecessor is always leaf
 	// call removeLeaf on predecessor
@@ -306,7 +306,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeUnderflow(int at_index) {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	assert(parent_ != nullptr); // every underflow path requires a parent
 	assert(isLeaf());
 
@@ -341,7 +341,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeClockwise() {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	assert(num_keys_ == 1);
 
 	int my_idx = getMyChildIdx();
@@ -356,7 +356,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeCounterClockwise() {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	assert(num_keys_ == 1);
 
 	int my_idx = getMyChildIdx();
@@ -371,7 +371,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusion() {
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	int my_idx = getMyChildIdx();
 	int parent_key_idx;
 
@@ -424,7 +424,7 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 
 template<class K, class C, class A>
 std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusionHeightReduced(){ // maybe combine with removeFusion
-//	std::cout << __FUNCTION__ << ": ";
+	std::cout << __FUNCTION__ << ": ";
 	//	assert(parent_->parent_ == nullptr); // TODO: assertion fails
 	assert(isLeaf());
 	assert(parent_->num_keys_ == 1);

@@ -149,7 +149,7 @@ TEST_CASE( "Erase with parent fusion", "[erase][underflow][fusion]" ) {
  * (one parent and two children), removing a key from either child
  * should result in three nodes merging into one and two nodes being deleted
  */
-TEST_CASE( "Erase fuse all remaining nodes", "[erase][underflow][fusion][.]" ) {
+TEST_CASE( "Erase fuse all remaining nodes", "[erase][underflow][fusion]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(0);
 	tree.insert(1);
@@ -250,3 +250,18 @@ TEST_CASE( "Erase root values complex", "[erase][internal]" ) {
 	REQUIRE(tree.validate());
 }
 
+TEST_CASE( "Erase - sequential", "[erase][underflow]" ) {
+	const int numTests = 10;
+	tft::TwoFourTree<int> tree;
+
+	for (int i = 0; i < numTests; i++)
+		tree.insert(std::move(i));
+	tree.print();
+
+	for (int i = 0; i < numTests; i++) {
+		tree.erase(i);
+		REQUIRE(!tree.contains(i));
+	}
+
+	REQUIRE(tree.validate());
+}
