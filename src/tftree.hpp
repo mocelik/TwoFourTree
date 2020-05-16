@@ -458,8 +458,21 @@ typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::ite
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
-	erase(root_->findKey(key));
+	auto it = find(key);
+//	std::cout << "\nerasing " << key << " from " << it << std::endl;
+	erase(it);
+//	std::cout << "\n";
 	return 1; // TODO keep track of size and return it here
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) const {
+	return const_iterator(root_->findKey(key));
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) {
+	return const_iterator(root_->findKey(key));
 }
 
 } // namespace tft

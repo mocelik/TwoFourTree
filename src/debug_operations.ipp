@@ -117,7 +117,7 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 		}
 
 		if (node == &null_node) {
-			ss << "null:";
+			ss << "_:";
 			continue;
 		}
 

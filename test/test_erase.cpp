@@ -144,3 +144,109 @@ TEST_CASE( "Erase with parent fusion", "[erase][underflow][fusion]" ) {
 	CHECK(tree.contains(76));
 }
 
+/**
+ * In cases where a segmented tree has 3 nodes with one key each
+ * (one parent and two children), removing a key from either child
+ * should result in three nodes merging into one and two nodes being deleted
+ */
+TEST_CASE( "Erase fuse all remaining nodes", "[erase][underflow][fusion][.]" ) {
+	tft::TwoFourTree<int> tree;
+	tree.insert(0);
+	tree.insert(1);
+	tree.insert(2);
+
+	// add another one to split the nodes up, then remove
+	tree.insert(3);
+	tree.erase(3);
+
+	SECTION("Erase left") {
+		tree.erase(0);
+		CHECK(!tree.contains(0));
+		tree.insert(0);
+	}
+
+	SECTION("Erase right") {
+		tree.erase(2);
+		CHECK(!tree.contains(2));
+		tree.insert(2);
+	}
+
+	CHECK(tree.contains(0));
+	CHECK(tree.contains(2));
+}
+
+/**
+ * After the first split which creates two nodes, try fusing the nodes back into one
+ *
+ * 	   [1]
+ *  [0]   [2]
+ *
+ *	erasing 1 makes it into
+ *
+ *    [0,2]
+ */
+TEST_CASE( "Erase root value simple", "[erase][internal]" ) {
+	tft::TwoFourTree<int> tree;
+	tree.insert(0);
+	tree.insert(1);
+	tree.insert(2);
+
+	// add another one to split the nodes up, then remove
+	tree.insert(3);
+	tree.erase(3);
+
+	tree.erase(1);
+	CHECK(!tree.contains(1));
+
+	CHECK(tree.contains(0));
+	CHECK(tree.contains(2));
+}
+
+/**
+ *  Erase internal values in root
+ *
+ *  This is the tree used:
+ *             [    30,            40               50  ]
+ *            /             |              |             \
+ *     [ 13, 15, 17 ] [ 33, 35, 37 ] [ 43, 45, 37 ] [ 53, 55, 57 ]
+ *
+ * Verify that erasing 30, 40 and 50 works
+ */
+TEST_CASE( "Erase root values complex", "[erase][internal]" ) {
+
+	tft::TwoFourTree<int> tree;
+
+	// order is very important to get the specified tree
+	std::vector<int> values {13, 30, 40, 47, 35, 33, 15, 17, 37, 50, 55, 43, 45, 53, 57 };
+	bool rc;
+	for ( auto it : values ) {
+		rc = tree.insert(std::move(it)).second;
+		REQUIRE(rc);
+	}
+
+	SECTION("Erase first") {
+		tree.erase(30);
+		CHECK(!tree.contains(30));
+		values.erase(std::find(values.begin(), values.end(), 30));
+	}
+
+	SECTION("Erase second") {
+		tree.erase(40);
+		CHECK(!tree.contains(40));
+		values.erase(std::find(values.begin(), values.end(), 40));
+	}
+
+	SECTION("Erase third") {
+		tree.erase(50);
+		CHECK(!tree.contains(50));
+		values.erase(std::find(values.begin(), values.end(), 50));
+	}
+
+	for ( auto it : values ) {
+		CHECK(tree.contains(it));
+	}
+
+	// Verifies all children have correct parents
+	REQUIRE(tree.validate());
+}
+
