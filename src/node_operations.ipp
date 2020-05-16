@@ -259,6 +259,132 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 	return std::move(k);
 }
 
+template<class Key, class C, class A>
+std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::getSuccessor(int to_index) const {
+	assert(0 <= to_index && to_index < num_keys_);
+	const Node* node_ = this;
+	int idx_ = to_index;
+
+	if (node_->children_[idx_ + 1]) { // if there is a child after this key
+		// go all the way to the leaf
+		const Node *node = node_->children_[idx_ + 1].get();
+		while (!node->isLeaf()) {
+			node = node->children_[0].get();
+		}
+		node_ = node;
+		idx_ = 0;
+		return std::make_pair(node_, idx_);
+
+	} else if (idx_ < (node_->num_keys_ - 1)) { // no child -> go right if there is something to the right
+		assert(node_->isLeaf());
+		++idx_;
+		return std::make_pair(node_, idx_);
+
+	} else { // no child, nothing to the right -> go up
+		assert (idx_ == node_->num_keys_ -1);
+
+		// need a loop in case we are right-most child and need to go up multiple levels
+		// possibly all the way up to root. If we DO get to the root, set the iterator
+		// back to the original node and set the idx to one-past-end
+		const Node *begin_node = node_;
+		while (true) {
+			const Node *parent = node_->parent_;
+
+			// check if we are root
+			if (parent == nullptr) {
+				// set equal to past_end_iterator
+				node_ = begin_node;
+				idx_ = node_->num_keys_;
+				return std::make_pair(node_, idx_);
+			}
+
+			// If this node is not the biggest child then next value is parent at idx [child idx]
+			for (int i = 0; i < parent->num_keys_; i++) {
+				if (parent->children_[i].get() == node_) {
+					node_ = parent;
+					idx_ = i;
+					return std::make_pair(node_, idx_);
+				}
+			}
+
+			// node_ is the biggest child of parent_
+			// repeat same process on upper level
+			assert(parent->children_[parent->num_keys_].get() == node_);
+			node_ = parent;
+			continue;
+		}
+	}
+}
+
+template<class Key, class C, class A>
+std::pair<const typename TwoFourTree<Key,C,A>::Node*, int> TwoFourTree<Key,C,A>::Node::getPredecessor(int to_index) const {
+	assert(0 <= to_index && to_index < num_keys_);
+	const Node * node_ = this;
+	int idx_ = to_index;
+
+	if (node_->children_[idx_]) { // if there is a child before this key
+		// go all the way to the leaf
+		const Node *node = node_->children_[idx_].get();
+		while (!node->isLeaf()) {
+			node = node->children_[node->num_keys_].get();
+		}
+		node_ = node;
+		idx_ = node_->num_keys_ - 1;
+		return std::make_pair(node_, idx_);
+
+	} else if (idx_ > 0) { // no child -> go left if there is something to the left
+		assert(node_->isLeaf());
+		--idx_;
+		return std::make_pair(node_, idx_);
+
+	} else { // no child, nothing to the left -> go up
+		assert(idx_ == 0);
+
+		// need a loop in case we are left-most child and need to go up multiple levels
+		// possibly all the way up to root. If we DO get to the root, set the iterator
+		// back to the original node and set the idx to -1
+		const Node *begin_node = node_;
+		while (true) {
+			const Node *parent = node_->parent_;
+
+			// check if we are root
+			if (parent == nullptr) {
+				// set equal to before-begin
+				node_ = begin_node;
+				idx_ = -1;
+				return std::make_pair(node_, idx_);
+			}
+
+			// If this node is not the smallest child then next value is parent at idx [child idx - 1]
+			for (int i = 1; i <= parent->num_keys_; i++) {
+				if (parent->children_[i].get() == node_) {
+					node_ = parent;
+					idx_ = i - 1;
+					return std::make_pair(node_, idx_);
+				}
+			}
+
+			// node_ is the smallest child of parent_
+			// repeat same process on upper level
+			assert(parent->children_[0].get() == node_);
+			node_ = parent;
+			continue;
+		}
+	}
+}
+
+template<class Key, class C, class A>
+std::pair<typename TwoFourTree<Key,C,A>::Node*, int> TwoFourTree<Key,C,A>::Node::getSuccessor(int to_index){
+	auto rc = static_cast<const Node&>(*this).getSuccessor(to_index);
+	return std::make_pair(const_cast<Node*>(rc.first), rc.second);
+}
+
+template<class Key, class C, class A>
+std::pair<typename TwoFourTree<Key,C,A>::Node*, int> TwoFourTree<Key,C,A>::Node::getPredecessor(int to_index){
+	auto rc = static_cast<const Node&>(*this).getPredecessor(to_index);
+	return std::make_pair(const_cast<Node*>(rc.first), rc.second);
+}
+
 /**
  * Traverses the children trying to find specified key
  * Returns the node that contains it and the index of the key
