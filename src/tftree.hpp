@@ -300,6 +300,9 @@ public:
 		std::pair<Node*, int> findKey(const Key &key);
 		std::pair<const Node*, int> findLargest() const;
 
+		std::pair<const Node*, int> getSuccessor(int to_index) const;
+		std::pair<const Node*, int> getPredecessor(int to_index) const;
+
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
 		Key extractValue(int index);
 		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
@@ -316,6 +319,9 @@ public:
 		}
 
 	private:
+		std::pair<Node*, int> getSuccessor(int to_index);
+		std::pair<Node*, int> getPredecessor(int to_index);
+
 		explicit Node(Node *parent) :
 				parent_(parent) {
 		}
