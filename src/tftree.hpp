@@ -322,13 +322,15 @@ public:
 		std::pair<Node*, int> getSuccessor(int to_index);
 		std::pair<Node*, int> getPredecessor(int to_index);
 		int getMyChildIdx() const;
+		Node * leftSibling();
+		Node * rightSibling();
 
 		Key extractValue(int index);
 		std::pair<const Node*,int> removeLeaf(int at_index);
 		std::pair<const Node*,int> removeInternal(int at_index);
 		std::pair<const Node*,int> removeUnderflow(int at_index);
-		std::pair<const Node*,int> removeLeftRotate();
-		std::pair<const Node*,int> removeRightRotate();
+		std::pair<const Node*,int> removeClockwise();
+		std::pair<const Node*,int> removeCounterClockwise();
 		std::pair<const Node*,int> removeFusion();
 		std::pair<const Node*,int> removeFusionHeightReduced(); // maybe combine with removeFusion
 

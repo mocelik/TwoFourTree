@@ -292,7 +292,6 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 	assert(parent_ != nullptr); // every underflow path requires a parent
 	assert(isLeaf());
 
-	std::cerr << "IN PROGRESS " << __FUNCTION__ << '\n';
 	int my_idx = getMyChildIdx();
 
 	// case 1.2.1
@@ -301,10 +300,10 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 	// if right siblign has >=2 keys, removeRightRotate();
 	{
 		if (my_idx > 0 && parent_->children_[my_idx-1]->num_keys_ >= 2) {
-			return removeLeftRotate();
+			return removeClockwise();
 		}
 		if (my_idx < (parent_->num_keys_) && parent_->children_[my_idx+1]->num_keys_ >= 2) {
-			return removeRightRotate();
+			return removeCounterClockwise();
 		}
 	}
 
@@ -323,15 +322,31 @@ std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::No
 }
 
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeLeftRotate() {
-	std::cerr << "TODO " << __FUNCTION__ << '\n';
-	return std::make_pair(nullptr, 0); // TODO
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeClockwise() {
+	assert(num_keys_ == 1);
+
+	int my_idx = getMyChildIdx();
+	assert(my_idx > 0);
+
+	auto left = leftSibling();
+	keys_[0] = std::move(parent_->keys_[my_idx - 1]);
+	parent_->keys_[my_idx - 1] = left->extractValue(left->num_keys_ - 1);
+
+	return getSuccessor(0);
 }
 
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeRightRotate() {
-	std::cerr << "TODO " << __FUNCTION__ << '\n';
-	return std::make_pair(nullptr, 0); // TODO
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeCounterClockwise() {
+	assert(num_keys_ == 1);
+
+	int my_idx = getMyChildIdx();
+	assert(my_idx < parent_->num_keys_);
+
+	auto right = rightSibling();
+	keys_[0] = std::move(parent_->keys_[my_idx]);
+	parent_->keys_[my_idx] = right->extractValue(0);
+
+	return getSuccessor(0);
 }
 
 template<class K, class C, class A>
@@ -355,6 +370,16 @@ int TwoFourTree<K,C,A>::Node::getMyChildIdx() const{
 	}
 	std::cerr << "Error: I am not my parents child!\n";
 	return -1;
+}
+
+template <class K, class C, class A>
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::leftSibling() {
+	return parent_->children_[getMyChildIdx() - 1].get();
+}
+
+template <class K, class C, class A>
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::rightSibling() {
+	return parent_->children_[getMyChildIdx() + 1].get();
 }
 
 template<class Key, class C, class A>
