@@ -305,6 +305,7 @@ public:
 
 		// TODO: return a const Node*
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
+		std::pair<const Node*, int> removeValue(int at_index);
 
 		// debug
 		void print() const;
@@ -320,7 +321,17 @@ public:
 	private:
 		std::pair<Node*, int> getSuccessor(int to_index);
 		std::pair<Node*, int> getPredecessor(int to_index);
+		int getMyChildIdx() const;
+
 		Key extractValue(int index);
+		std::pair<const Node*,int> removeLeaf(int at_index);
+		std::pair<const Node*,int> removeInternal(int at_index);
+		std::pair<const Node*,int> removeUnderflow(int at_index);
+		std::pair<const Node*,int> removeLeftRotate();
+		std::pair<const Node*,int> removeRightRotate();
+		std::pair<const Node*,int> removeFusion();
+		std::pair<const Node*,int> removeFusionHeightReduced(); // maybe combine with removeFusion
+
 		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		explicit Node(Node *parent) :
@@ -436,6 +447,18 @@ typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crend() 
 	return const_reverse_iterator(begin_iterator_);
 }
 
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::iterator pos){
+	Node * node = const_cast<Node*> (pos.node_); // this cast is safe, otherwise caller couldn't call this function
+	return iterator(node->removeValue(pos.idx_));
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
+	erase(root_->findKey(key));
+	return 1; // TODO keep track of size and return it here
+}
 
 } // namespace tft
 

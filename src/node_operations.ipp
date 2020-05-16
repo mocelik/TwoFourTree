@@ -247,16 +247,114 @@ void TwoFourTree<K,C,A>::Node::overflowRecursive (K&& key, std::unique_ptr<Node>
 
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
-	assert(index > 0 && index < num_keys_);
+	assert(index >= 0 && index < num_keys_);
 	assert(isLeaf()); // do not call this on an internal node
 
 	Key k = std::move(keys_[index]);
 
 	for (int i=index; i < num_keys_ - 1; i++)
-		keys_[i] = std::move(i+1);
+		keys_[i] = std::move(keys_[i+1]);
 
 	num_keys_--;
 	return std::move(k);
+}
+
+
+template<class Key, class C, class A>
+std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::removeValue(int at_index){
+	assert(at_index >= 0 && at_index < num_keys_);
+
+	if (isLeaf()) {
+		return removeLeaf(at_index);
+	} else {
+		return removeInternal(at_index);
+	}
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeLeaf(int at_index) {
+	if (num_keys_ > 1 || parent_ == nullptr) {
+		extractValue(at_index);
+		return std::make_pair(this, at_index);
+	} else {
+		return removeUnderflow(at_index);
+	}
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeInternal(int at_index) {
+	std::cerr << "TODO " << __FUNCTION__ << '\n';
+	return std::make_pair(nullptr, 0); // TODO
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeUnderflow(int at_index) {
+	assert(parent_ != nullptr); // every underflow path requires a parent
+	assert(isLeaf());
+
+	std::cerr << "IN PROGRESS " << __FUNCTION__ << '\n';
+	int my_idx = getMyChildIdx();
+
+	// case 1.2.1
+	// try to transfer values from sibling/parent if sibling supports it
+	// if left sibling has >=2 keys, removeLeftRotate();
+	// if right siblign has >=2 keys, removeRightRotate();
+	{
+		if (my_idx > 0 && parent_->children_[my_idx-1]->num_keys_ >= 2) {
+			return removeLeftRotate();
+		}
+		if (my_idx < (parent_->num_keys_) && parent_->children_[my_idx+1]->num_keys_ >= 2) {
+			return removeRightRotate();
+		}
+	}
+
+	// case 1.2.2 -> both siblings have <2 keys
+	// if parent has >=2 keys, removeFusion();
+	if (parent_->num_keys_ >= 2){
+		return removeFusion();
+	}
+
+
+	// case 1.2.3
+	// parent must be root
+	// combine with sibling and parent
+	assert (parent_->parent_ == nullptr);
+	return removeFusionHeightReduced();
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeLeftRotate() {
+	std::cerr << "TODO " << __FUNCTION__ << '\n';
+	return std::make_pair(nullptr, 0); // TODO
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeRightRotate() {
+	std::cerr << "TODO " << __FUNCTION__ << '\n';
+	return std::make_pair(nullptr, 0); // TODO
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusion() {
+	std::cerr << "TODO " << __FUNCTION__ << '\n';
+	return std::make_pair(nullptr, 0); // TODO
+}
+
+template<class K, class C, class A>
+std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusionHeightReduced(){ // maybe combine with removeFusion
+	std::cerr << "TODO!" << __FUNCTION__ << '\n';
+	return std::make_pair(nullptr, 0); // TODO
+}
+
+template <class K, class C, class A>
+int TwoFourTree<K,C,A>::Node::getMyChildIdx() const{
+	assert(parent_ != nullptr);
+	for (int i=0; i <= parent_->num_keys_; ++i) {
+		if (parent_->children_[i].get() == this)
+			return i;
+	}
+	std::cerr << "Error: I am not my parents child!\n";
+	return -1;
 }
 
 template<class Key, class C, class A>
