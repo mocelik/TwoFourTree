@@ -431,11 +431,7 @@ bool TwoFourTree<K,C,A>::Node::isFull() const {
 
 template<class K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::isLeaf() const {
-	for (int i = 0; i < kMaxNumChildren; i++) {
-		if (children_[i])
-			return false;
-	}
-	return true;
+	return !children_[0];
 }
 
 
