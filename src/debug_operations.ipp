@@ -53,10 +53,21 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
 				std::cout << check.second->parent_->getString() << "\n";
 		}
 
+		int num_children = 0;
 		for (int i = 0; i < node->num_keys_+1; i++) {
 			if (node->children_[i]) {
 				allNodes.push_back(std::make_pair(node,node->children_[i].get()));
+				++num_children;
 			}
+		}
+		if (!node->isLeaf() && num_children != node->num_keys_ + 1) {
+			std::cout << "number of keys and children mismatch.\n";
+			std::cout << "Node contents = [" << node->getString() << "], num_keys = " << node->num_keys_ << ", #children (" << num_children <<"): \n";
+			for (int i = 0; i < num_children; i++) {
+				std::cout << node->children_[i]->getString() << "   ";
+			}
+			std::cout << "\n";
+			rc = false;
 		}
 	} // end loop
 	return rc;
