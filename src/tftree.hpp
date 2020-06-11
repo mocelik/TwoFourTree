@@ -305,11 +305,12 @@ public:
 
 		// TODO: return a const Node*
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
-		std::pair<const Node*, int> removeValue(int at_index);
+		std::pair<const Node*, int> removeValue(const Key& value, std::unique_ptr<Node> &root);
 
 		// debug
 		void print() const;
 		void printAll() const;
+//		void printFromAsHighAsPossible() const;
 		std::string getString() const;
 		std::string getStringAll() const;
 		bool validateRelationships() const;
@@ -325,7 +326,20 @@ public:
 		Node * leftSibling();
 		Node * rightSibling();
 
+		Node* makeThreeNode();
+		std::pair<Node*,bool> traverse_step(const Key& looking_for_key);
+		int getKeyIndex(const Key& key);
+		Node* transferFromRight();
+		Node* transferFromLeft();
+		Node* fusion();
+		Node* shrink();
+
+
+
+
 		Key extractValue(int index);
+		std::pair<Node*,int> findWithRemove(const Key& key);
+		std::pair<const Node*,int> remove(int at_index);
 		std::pair<const Node*,int> removeLeaf(int at_index);
 		std::pair<const Node*,int> removeInternal(int at_index);
 		std::pair<const Node*,int> removeUnderflow(int at_index);
@@ -453,15 +467,12 @@ typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crend() 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::iterator pos){
 	Node * node = const_cast<Node*> (pos.node_); // this cast is safe, otherwise caller couldn't call this function
-	return iterator(node->removeValue(pos.idx_));
+	return iterator(root_->removeValue(*pos, root_)); // TODO: fix efficiency to get bottom value from iterator?
 }
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
-	auto it = find(key);
-	std::cout << "\nerasing " << key << " from " << it << std::endl;
-	erase(it);
-	std::cout << "\n";
+	root_->removeValue(key, root_);
 	return 1; // TODO keep track of size and return it here
 }
 

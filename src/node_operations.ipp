@@ -247,7 +247,6 @@ void TwoFourTree<K,C,A>::Node::overflowRecursive (K&& key, std::unique_ptr<Node>
 
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
-	std::cout << __FUNCTION__ << ": ";
 	assert(index >= 0 && index < num_keys_);
 	assert(isLeaf()); // do not call this on an internal node
 
@@ -262,196 +261,265 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 
 
 template<class Key, class C, class A>
-std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::removeValue(int at_index){
-	std::cout << __FUNCTION__ << ": ";
-	assert(at_index >= 0 && at_index < num_keys_);
+std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::removeValue(
+		const Key& value, std::unique_ptr<Node>& root) {
+	assert(this == root.get()); // for now...
 
-	if (isLeaf()) {
-		return removeLeaf(at_index);
-	} else {
-		return removeInternal(at_index);
-	}
+	auto r = findWithRemove(value); // returns the leaf node and index (which should be r.first->num_keys_-1 UNLESS value was already in leaf)
+	assert(r.first->isLeaf());
+	assert(r.first->num_keys_ > 1 || r.first == root.get());
+	r.first->extractValue(r.second);
+	return std::make_pair(r.first, r.second-1);
 }
 
+/**
+ * Logical one step traversal down the tree in search of the specified key.
+ *
+ * returns a pair<Node*, bool>.
+ * 	The Node* points to the next node in the direction of key.
+ * 	The bool returns true if the key is in the current node, in which case the Node* will be this.
+ *
+ */
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeLeaf(int at_index) {
-	std::cout << __FUNCTION__ << ": ";
-	if (num_keys_ > 1 || parent_ == nullptr) {
-		auto rc = getSuccessor(at_index);
-		extractValue(at_index);
-		return rc;
-	} else {
-		return removeUnderflow(at_index);
-	}
-}
-
-template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeInternal(int at_index) {
-	std::cout << __FUNCTION__ << ": ";
-	// swap key with predecessor key
-	// predecessor is always leaf
-	// call removeLeaf on predecessor
-
-	auto pair = getPredecessor(at_index);
-	auto predecessor_node = pair.first;
-	auto predecessor_idx = pair.second;
-	assert(predecessor_node->isLeaf());
-
-	K tmp = std::move(predecessor_node->keys_[predecessor_idx]);
-	predecessor_node->keys_[predecessor_idx] = std::move(keys_[at_index]); // TODO not sure if necessary
-	keys_[at_index] = std::move(tmp);
-
-	return predecessor_node->removeLeaf(predecessor_idx);
-}
-
-template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeUnderflow(int at_index) {
-	std::cout << __FUNCTION__ << ": ";
-	assert(parent_ != nullptr); // every underflow path requires a parent
-	assert(isLeaf());
-
-	int my_idx = getMyChildIdx();
-
-	// case 1.2.1
-	// try to transfer values from sibling/parent if sibling supports it
-	// if left sibling has >=2 keys, removeLeftRotate();
-	// if right siblign has >=2 keys, removeRightRotate();
-	{
-		if (my_idx > 0 && parent_->children_[my_idx-1]->num_keys_ >= 2) {
-			return removeClockwise();
-		}
-		if (my_idx < (parent_->num_keys_) && parent_->children_[my_idx+1]->num_keys_ >= 2) {
-			return removeCounterClockwise();
+std::pair<typename TwoFourTree<K,C,A>::Node*, bool>  TwoFourTree<K,C,A>::Node::traverse_step(const K& sought_key){
+	for (int i = 0; i < num_keys_; i++) {
+		if (sought_key < keys_[i]) {
+			return std::make_pair(children_[i].get(), false);
+		} else if (sought_key == keys_[i]) {
+			return std::make_pair(this, true);
 		}
 	}
+	return std::make_pair(children_[num_keys_].get(), false);
+}
 
-	// case 1.2.2 -> both siblings have <2 keys
-	// if parent has >=2 keys, removeFusion();
-	if (parent_->num_keys_ >= 2){
-		return removeFusion();
+template<class K, class C, class A>
+int TwoFourTree<K,C,A>::Node::getKeyIndex(const K& key){
+	for (int i = 0; i < num_keys_; i++)
+		if (keys_[i] == key)
+			return i;
+	return -1;
+}
+
+template<class Key, class C, class A>
+std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::findWithRemove(
+		const Key& key) {
+
+	std::pair<Node*, int> original_key_location { nullptr, -1 };
+
+	// traverse the tree until the key is found
+	// note that makeThreeNode is intentionally not called on *this
+	auto traverse_iter = this->traverse_step(key);
+	while (!traverse_iter.first->isLeaf() && !traverse_iter.second) { // first is the node, second is false if traverse succeeded
+		traverse_iter.first = traverse_iter.first->makeThreeNode();
+		traverse_iter = traverse_iter.first->traverse_step(key);
+	}
+	if (traverse_iter.first->parent_ != nullptr) // if not root
+		traverse_iter.first = traverse_iter.first->makeThreeNode();
+
+	assert (original_key_location.first == nullptr && original_key_location.second == -1);
+
+	original_key_location = std::make_pair(traverse_iter.first, traverse_iter.first->getKeyIndex(key));
+	assert(original_key_location.second != -1);
+
+	// Now the key is found.
+	// We need to keep traversing until we get to the predecessor node
+	// Then we swap the key with the predecessor, and return the predecessor location
+
+	if (original_key_location.first->isLeaf()) {
+		return original_key_location;
 	}
 
+	auto pred = original_key_location.first->getPredecessor(original_key_location.second);
+	pred.first = pred.first->makeThreeNode();
+	pred.second = pred.first->num_keys_ - 1;
 
-	// case 1.2.3
-	// parent must be root
-	// combine with sibling and parent
-//	assert (parent_->parent_ == nullptr); // TODO: assertion fails. Reproduced by inserting 0-9 and removing 0-9.
-	return removeFusionHeightReduced();
+	// TODO: optimize...
+	// current solution always checks if makeThreeNode moved the key down to the predecessor node
+	// if it isn't, we should be able to move to a new while loop that doesn't check for that anymore
+	while (!pred.first->isLeaf()) {
+		pred = pred.first->getPredecessor(pred.second);
+		pred.first = pred.first->makeThreeNode();
+		if (pred.first->getKeyIndex(key) == -1)
+			pred.second = pred.first->num_keys_ - 1;
+		else {
+			pred.second = pred.first->getKeyIndex(key);
+			original_key_location = pred;
+		}
+	}
+
+	int key_idx = pred.first->getKeyIndex(key);
+	if (key_idx != -1) {
+		return std::make_pair(pred.first, key_idx);
+	} else {
+		std::swap(pred.first->keys_[pred.second],
+				original_key_location.first->keys_[original_key_location.second]);
+		return pred;
+	}
 }
 
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeClockwise() {
-	std::cout << __FUNCTION__ << ": ";
-	assert(num_keys_ == 1);
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
+	if (num_keys_ != 1)
+		return this;
+	assert(parent_ != nullptr);
 
 	int my_idx = getMyChildIdx();
-	assert(my_idx > 0);
+	if (my_idx > 0 && parent_->children_[my_idx - 1]->num_keys_ >= 2) {
+		return transferFromLeft();
+	}
+	if (my_idx < (parent_->num_keys_)
+			&& parent_->children_[my_idx + 1]->num_keys_ >= 2) {
+		return transferFromRight();
+	}
 
-	auto left = leftSibling();
-	keys_[0] = std::move(parent_->keys_[my_idx - 1]);
-	parent_->keys_[my_idx - 1] = left->extractValue(left->num_keys_ - 1);
+	if (parent_->num_keys_ > 1) {
+		return fusion();
+	}
 
-	return getSuccessor(0);
+	return shrink();
 }
 
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeCounterClockwise() {
-	std::cout << __FUNCTION__ << ": ";
-	assert(num_keys_ == 1);
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromRight() {
 
 	int my_idx = getMyChildIdx();
-	assert(my_idx < parent_->num_keys_);
+	std::unique_ptr < Node > &right = parent_->children_[my_idx + 1];
 
-	auto right = rightSibling();
-	keys_[0] = std::move(parent_->keys_[my_idx]);
-	parent_->keys_[my_idx] = right->extractValue(0);
+	// transfer from right to parent and *this
+	keys_[num_keys_] = std::move(parent_->keys_[my_idx]);
+	parent_->keys_[my_idx] = std::move(right->keys_[0]);
+	children_[num_keys_ + 1] = std::move(right->children_[0]);
+	if (children_[num_keys_ + 1])
+		children_[num_keys_ + 1]->parent_ = this;
 
-	return getSuccessor(0);
+	// fix formatting of right
+	for (int i = 1; i < right->num_keys_; i++) {
+		right->keys_[i-1] = std::move(right->keys_[i]);
+		right->children_[i-1] = std::move(right->children_[i]);
+	}
+	right->children_[right->num_keys_-1] = std::move(right->children_[right->num_keys_]);
+
+	--right->num_keys_;
+	++num_keys_;
+	return this;
 }
 
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusion() {
-	std::cout << __FUNCTION__ << ": ";
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromLeft() {
+
 	int my_idx = getMyChildIdx();
-	int parent_key_idx;
+	std::unique_ptr < Node > &left = parent_->children_[my_idx - 1];
 
-	// merge with left and parent if there is a node to the left
-	if (my_idx > 0) {
-		auto left = leftSibling();
-		assert(left->num_keys_ == 1); // otherwise we would be rotating clockwise or counter clockwise
-		parent_key_idx = my_idx - 1;
+	// make space in *this for the incoming key from parent
+	for (int i = num_keys_; i > 0; --i){
+		keys_[i] = std::move(keys_[i-1]);
+		children_[i+1] = std::move(children_[i]);
+	}
+	children_[1] = std::move(children_[0]);
 
-		keys_[1] = std::move(parent_->keys_[parent_key_idx]);
-		keys_[0] = std::move(left->keys_[0]);
-		num_keys_ = 2;
+	// transfer from parent and left
+	keys_[0] = std::move(parent_->keys_[my_idx-1]);
+	parent_->keys_[my_idx - 1] = std::move(left->keys_[left->num_keys_ - 1]);
+	children_[0] = std::move(left->children_[left->num_keys_]);
+	if (children_[0])
+		children_[0]->parent_ = this;
 
-		// move the parent keys over
-		for (int i = parent_key_idx; i < parent_->num_keys_ - 1; i++) {
+	--left->num_keys_;
+	++num_keys_;
+	return this;
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
+	if ( parent_->num_keys_ < 2) {
+		std::cout << "fusion failed. cannot steal value from parent because it only has one.\n";
+		return this;
+	}
+
+	int my_idx = getMyChildIdx();
+	if (my_idx > 0) { // prefer to fuse with left
+		auto &left = parent_->children_[my_idx - 1];
+		left->keys_[1] = std::move(parent_->keys_[my_idx-1]);
+		left->keys_[2] = std::move(keys_[0]);
+
+		if (children_[0])
+			children_[0]->parent_ = left.get();
+		if (children_[1])
+			children_[1]->parent_ = left.get();
+		left->children_[2] = std::move(children_[0]);
+		left->children_[3] = std::move(children_[1]);
+
+		std::unique_ptr<Node> self = std::move(parent_->children_[my_idx]);
+		for (auto i = my_idx; i < parent_->num_keys_; i++) {
+			parent_->children_[i] = std::move(parent_->children_[i + 1]);
+		}
+
+		for (auto i = my_idx; i < parent_->num_keys_; i++) {
+			parent_->keys_[i-1] = std::move(parent_->keys_[i]);
+		}
+
+		--parent_->num_keys_;
+		left->num_keys_ = 3;
+
+		// Warning: *this will be destroyed
+		return left.get();
+	} else { // forced to fuse with right
+		auto right = std::move(parent_->children_[my_idx + 1]);
+
+		keys_[1] = std::move(parent_->keys_[my_idx]);
+		keys_[2] = std::move(right->keys_[0]);
+		children_[2] = std::move(right->children_[0]);
+		children_[3] = std::move(right->children_[1]);
+		if(children_[2])
+			children_[2]->parent_ = this;
+		if(children_[3])
+			children_[3]->parent_ = this;
+
+		// fix parent
+		for (int i = my_idx; i < parent_->num_keys_ - 1; ++i) {
 			parent_->keys_[i] = std::move(parent_->keys_[i + 1]);
+			parent_->children_[i + 1] = std::move(parent_->children_[i + 2]);
 		}
+		--parent_->num_keys_;
 
-		// move parent children over (this will delete leftSibling unique_ptr)
-		for (int i=my_idx-1; i < parent_->num_keys_; i++) {
-			parent_->children_[i] = std::move(parent_->children_[i+1]);
-		}
-		parent_->num_keys_--;
-		return getSuccessor(1);
-
-	// fallback to merging with right if we are left-most child
-	} else {
-		auto right = rightSibling();
-		assert(right->num_keys_ == 1);
-
-		parent_key_idx = my_idx;
-		keys_[0] = std::move(parent_->keys_[parent_key_idx]);
-		keys_[1] = std::move(right->keys_[0]);
-		num_keys_ = 2;
-
-		// move parent keys over
-		for (int i = 0; i < parent_->num_keys_ - 1; i++) {
-			parent_->keys_[i] = std::move(parent_->keys_[i + 1]);
-		}
-
-		// move parent children over (this will delete rightSibling unique ptr)
-		for (int i = 1; i < parent_->num_keys_; i++) {
-			parent_->children_[i] = std::move(parent_->children_[i+1]);
-		}
-		parent_->num_keys_--;
-
-		return getSuccessor(1);
+		num_keys_ = 3;
+		return this;
 	}
 }
 
+
 template<class K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::removeFusionHeightReduced(){ // maybe combine with removeFusion
-	std::cout << __FUNCTION__ << ": ";
-	//	assert(parent_->parent_ == nullptr); // TODO: assertion fails
-	assert(isLeaf());
-	assert(parent_->num_keys_ == 1);
+typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::shrink() {
+	assert(parent_->parent_ == nullptr); // assert parent is root
 
-	if (this == parent_->children_[0].get()) {
-		parent_->keys_[1] = std::move(parent_->children_[1]->keys_[0]);
-		parent_->num_keys_ = 2;
+	std::unique_ptr<Node> right, left; // one of these contains *this
+	left = std::move(parent_->children_[0]);
+	right = std::move(parent_->children_[1]);
 
-		parent_->children_[1].reset(nullptr); // delete sibling
-		auto rc = parent_;
-		parent_->children_[0].reset(nullptr); // WARNING: DELETES THIS
+	parent_->keys_[1] = std::move(parent_->keys_[0]);
+	parent_->keys_[0] = std::move(left->keys_[0]);
+	parent_->keys_[2] = std::move(right->keys_[0]);
 
-		assert(parent_->isLeaf());
+	parent_->children_[0] = std::move(left->children_[0]);
+	parent_->children_[1] = std::move(left->children_[1]);
+	parent_->children_[2] = std::move(right->children_[0]);
+	parent_->children_[3] = std::move(right->children_[1]);
 
-		return std::make_pair(rc, 0);
-	} else {
-		parent_->keys_[1] = std::move(parent_->keys_[0]);
-		parent_->keys_[0] = std::move(parent_->children_[0]->keys_[0]);
-		parent_->num_keys_ = 2;
+	if (parent_->children_[0])
+		parent_->children_[0]->parent_ = parent_;
 
-		parent_->children_[0].reset(nullptr); // delete sibling
-		auto rc = parent_;
-		parent_->children_[1].reset(nullptr); // WARNING: DELETES THIS
+	if (parent_->children_[1])
+			parent_->children_[1]->parent_ = parent_;
 
-		assert(parent_->isLeaf());
-		return rc->getSuccessor(1);
-	}
+	if (parent_->children_[2])
+			parent_->children_[2]->parent_ = parent_;
+
+	if (parent_->children_[3])
+			parent_->children_[3]->parent_ = parent_;
+
+	parent_->num_keys_ = 3;
+	// Warning: *this will be destroyed
+	return parent_;
 }
 
 template <class K, class C, class A>
