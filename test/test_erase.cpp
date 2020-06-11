@@ -65,7 +65,7 @@ TEST_CASE( "Erase single empty node", "[erase]" ) {
  *
  *  Should cause a clockwise rotation so 33 goes up and 52 goes down to the right
  */
-TEST_CASE( "Erase with clockwise rotation", "[erase][underflow]" ) {
+TEST_CASE( "Erase with transfer left", "[erase][transferFromLeft]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.insert(52);
@@ -87,7 +87,7 @@ TEST_CASE( "Erase with clockwise rotation", "[erase][underflow]" ) {
  *
  *  Should cause a counterclockwise rotation so 52 goes down and to the left, 76 goes up
  */
-TEST_CASE( "Erase with counter clockwise rotation", "[erase][underflow]" ) {
+TEST_CASE( "Erase transfer right", "[erase][transferFromRight]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.insert(52);
@@ -102,54 +102,80 @@ TEST_CASE( "Erase with counter clockwise rotation", "[erase][underflow]" ) {
 }
 
 /**
- *  Remove 55 from this tree:
- *       [ 52, 60 ]
- *      /     |    \
- *  [ 20 ]  [ 55 ] [ 76 ]
+ *  Remove from the leaves of this tree:
+ *       [ 52,  60,  80 ]
+ *      /     |     |    \
+ *  [ 20 ] [ 55 ] [ 76 ]  [ 81 ]
  *
- *  20, 52 and 55 should merge into one node then 55 will be removed
+ *  The root should give away one of its values to the node with the erased value
  */
-TEST_CASE( "Erase with parent fusion", "[erase][underflow][fusion]" ) {
+TEST_CASE( "Erase fusion", "[erase][fusion]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.insert(52);
 	tree.insert(55);
 	tree.insert(60);
 	tree.insert(76);
-
-	// insert and erase 80 to split the node and create the correct tree
 	tree.insert(80);
-	tree.erase(80);
+	tree.insert(81);
 
-	SECTION("Overflow left") {
+	// insert and erase 82 to split the node and create the correct tree
+	tree.insert(82);
+	tree.erase(82);
+
+	SECTION("Fuse from child 0") {
 		tree.erase(20);
 		CHECK(!tree.contains(20));
-		tree.insert(20); // so we can check en-masse at the end of the section
+
+		CHECK(tree.contains(52));
+		CHECK(tree.contains(55));
+		CHECK(tree.contains(60));
+		CHECK(tree.contains(76));
+		CHECK(tree.contains(80));
+		CHECK(tree.contains(81));
 	}
-	SECTION("Overflow middle") {
+	SECTION("Fuse from child 1") {
 		tree.erase(55);
 		CHECK(!tree.contains(55));
-		tree.insert(55); // so we can check en-masse at the end of the section
+
+		CHECK(tree.contains(20));
+		CHECK(tree.contains(52));
+		CHECK(tree.contains(60));
+		CHECK(tree.contains(76));
+		CHECK(tree.contains(80));
+		CHECK(tree.contains(81));
 	}
-	SECTION("Overflow right") {
+	SECTION("Fuse from child 2") {
 		tree.erase(76);
 		CHECK(!tree.contains(76));
-		tree.insert(76); // so we can check en-masse at the end of the section
-	}
 
-	CHECK(tree.contains(20));
-	CHECK(tree.contains(52));
-	CHECK(tree.contains(55));
-	CHECK(tree.contains(60));
-	CHECK(tree.contains(76));
+		CHECK(tree.contains(20));
+		CHECK(tree.contains(52));
+		CHECK(tree.contains(55));
+		CHECK(tree.contains(60));
+		CHECK(tree.contains(80));
+		CHECK(tree.contains(81));
+	}
+	SECTION("Fuse from child 3") {
+		tree.erase(81);
+		CHECK(!tree.contains(81));
+
+		CHECK(tree.contains(20));
+		CHECK(tree.contains(52));
+		CHECK(tree.contains(55));
+		CHECK(tree.contains(60));
+		CHECK(tree.contains(76));
+		CHECK(tree.contains(80));
+	}
 }
 
 /**
- * In cases where a segmented tree has 3 nodes with one key each
- * (one parent and two children), removing a key from either child
- * should result in three nodes merging into one and two nodes being deleted
+ * Fusion from the parent or from a tree with only 3 nodes (parent and two children) is a special case
+ * Removing any of the values in this tree should fuse the 3 nodes into one node:
+ * 	   [1]
+ *  [0]   [2]
  */
-TEST_CASE( "Erase fuse all remaining nodes", "[erase][underflow][fusion]" ) {
+TEST_CASE( "Erase fusion root", "[erase][fusion]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(0);
 	tree.insert(1);
@@ -171,36 +197,17 @@ TEST_CASE( "Erase fuse all remaining nodes", "[erase][underflow][fusion]" ) {
 		tree.insert(2);
 	}
 
+	SECTION("Erase root") {
+		tree.erase(1);
+		CHECK(!tree.contains(1));
+		tree.insert(1);
+	}
+
 	CHECK(tree.contains(0));
+	CHECK(tree.contains(1));
 	CHECK(tree.contains(2));
 }
 
-/**
- * After the first split which creates two nodes, try fusing the nodes back into one
- *
- * 	   [1]
- *  [0]   [2]
- *
- *	erasing 1 makes it into
- *
- *    [0,2]
- */
-TEST_CASE( "Erase root value simple", "[erase][internal]" ) {
-	tft::TwoFourTree<int> tree;
-	tree.insert(0);
-	tree.insert(1);
-	tree.insert(2);
-
-	// add another one to split the nodes up, then remove
-	tree.insert(3);
-	tree.erase(3);
-
-	tree.erase(1);
-	CHECK(!tree.contains(1));
-
-	CHECK(tree.contains(0));
-	CHECK(tree.contains(2));
-}
 
 /**
  *  Erase internal values in root
@@ -212,8 +219,7 @@ TEST_CASE( "Erase root value simple", "[erase][internal]" ) {
  *
  * Verify that erasing 30, 40 and 50 works
  */
-TEST_CASE( "Erase root values complex", "[erase][internal]" ) {
-
+TEST_CASE( "Erase internal", "[erase][internal][swap]" ) {
 	tft::TwoFourTree<int> tree;
 
 	// order is very important to get the specified tree
@@ -250,18 +256,56 @@ TEST_CASE( "Erase root values complex", "[erase][internal]" ) {
 	REQUIRE(tree.validate());
 }
 
-TEST_CASE( "Erase - sequential", "[erase][underflow]" ) {
+TEST_CASE( "Erase - sequential", "[erase][shrink]" ) {
 	const int numTests = 10;
 	tft::TwoFourTree<int> tree;
 
 	for (int i = 0; i < numTests; i++)
 		tree.insert(std::move(i));
-	tree.print();
 
-	for (int i = 0; i < numTests; i++) {
-		tree.erase(i);
-		REQUIRE(!tree.contains(i));
+	SECTION("Remove in order") {
+		for (int i = 0; i < numTests; i++) {
+			tree.erase(i);
+			REQUIRE(!tree.contains(i));
+		}
+	}
+
+	SECTION("Remove in reverse order") {
+		for (int i = numTests - 1; i >= 0; i--) {
+			tree.erase(i);
+			REQUIRE(!tree.contains(i));
+		}
 	}
 
 	REQUIRE(tree.validate());
 }
+
+/**
+ * Stress test
+ */
+TEST_CASE( "Erase - stress test", "[erase][insert]" ) {
+
+	const int numTests = 50000;
+
+	tft::TwoFourTree<int> tree;
+
+	for (int i = 0; i < numTests; i++)
+		tree.insert(std::move(i));
+
+	SECTION("Remove in order") {
+		for (int i = 0; i < numTests; i++) {
+			tree.erase(i);
+			REQUIRE(!tree.contains(i));
+		}
+	}
+
+	SECTION("Remove in reverse order") {
+		for (int i = numTests - 1; i >= 0; i--) {
+			tree.erase(i);
+			REQUIRE(!tree.contains(i));
+		}
+	}
+
+	CHECK(tree.validate());
+}
+
