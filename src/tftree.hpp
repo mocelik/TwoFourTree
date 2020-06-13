@@ -310,7 +310,6 @@ public:
 		// debug
 		void print() const;
 		void printAll() const;
-//		void printFromAsHighAsPossible() const;
 		std::string getString() const;
 		std::string getStringAll() const;
 		bool validateRelationships() const;
@@ -339,14 +338,6 @@ public:
 
 		Key extractValue(int index);
 		std::pair<Node*,int> findWithRemove(const Key& key);
-		std::pair<const Node*,int> remove(int at_index);
-		std::pair<const Node*,int> removeLeaf(int at_index);
-		std::pair<const Node*,int> removeInternal(int at_index);
-		std::pair<const Node*,int> removeUnderflow(int at_index);
-		std::pair<const Node*,int> removeClockwise();
-		std::pair<const Node*,int> removeCounterClockwise();
-		std::pair<const Node*,int> removeFusion();
-		std::pair<const Node*,int> removeFusionHeightReduced(); // maybe combine with removeFusion
 
 		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 

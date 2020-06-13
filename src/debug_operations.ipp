@@ -54,7 +54,7 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
 		}
 
 		int num_children = 0;
-		for (int i = 0; i < node->num_keys_+1; i++) {
+		for (int i = 0; i < kMaxNumChildren; i++) {
 			if (node->children_[i]) {
 				allNodes.push_back(std::make_pair(node,node->children_[i].get()));
 				++num_children;

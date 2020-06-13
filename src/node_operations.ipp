@@ -452,9 +452,6 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 		std::unique_ptr<Node> self = std::move(parent_->children_[my_idx]);
 		for (auto i = my_idx; i < parent_->num_keys_; i++) {
 			parent_->children_[i] = std::move(parent_->children_[i + 1]);
-		}
-
-		for (auto i = my_idx; i < parent_->num_keys_; i++) {
 			parent_->keys_[i-1] = std::move(parent_->keys_[i]);
 		}
 
