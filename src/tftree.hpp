@@ -327,7 +327,7 @@ public:
 		Node * rightSibling();
 
 		Node* makeThreeNode();
-		std::pair<Node*,bool> traverse_step(const Key& looking_for_key);
+		std::pair<Node*,int> traverse_step(const Key& looking_for_key);
 		int getKeyIndex(const Key& key);
 		Node* transferFromRight();
 		Node* transferFromLeft();

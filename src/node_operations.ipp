@@ -281,15 +281,15 @@ std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>
  *
  */
 template<class K, class C, class A>
-std::pair<typename TwoFourTree<K,C,A>::Node*, bool>  TwoFourTree<K,C,A>::Node::traverse_step(const K& sought_key){
+std::pair<typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::traverse_step(const K& sought_key){
 	for (int i = 0; i < num_keys_; i++) {
 		if (sought_key < keys_[i]) {
-			return std::make_pair(children_[i].get(), false);
+			return std::make_pair(children_[i].get(), -1);
 		} else if (sought_key == keys_[i]) {
-			return std::make_pair(this, true);
+			return std::make_pair(this, i);
 		}
 	}
-	return std::make_pair(children_[num_keys_].get(), false);
+	return std::make_pair(children_[num_keys_].get(), -1);
 }
 
 template<class K, class C, class A>
@@ -309,7 +309,7 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 	// traverse the tree until the key is found
 	// note that makeThreeNode is intentionally not called on *this
 	auto traverse_iter = this->traverse_step(key);
-	while (!traverse_iter.first->isLeaf() && !traverse_iter.second) { // first is the node, second is false if traverse succeeded
+	while (!traverse_iter.first->isLeaf() && traverse_iter.second == -1) { // first is the node, second is false if traverse succeeded
 		traverse_iter.first = traverse_iter.first->makeThreeNode();
 		traverse_iter = traverse_iter.first->traverse_step(key);
 	}
@@ -678,34 +678,17 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int> TwoFourTree<Key,C,A>::Node:
  */
 template<class Key, class C, class A>
 std::pair<typename TwoFourTree<Key,C,A>::Node *, int> TwoFourTree<Key,C,A>::Node::findKey (const Key& key){
-	const int doesntContain = -1;
-	Node * currentNode = this;
-
-	while (!currentNode->isLeaf()) {
-
-		for (int i = 0; i < currentNode->num_keys_; i++) { // iterate over each key / child
-			if (key < currentNode->keys_[i]) {
-				currentNode = currentNode->children_[i].get();
-				goto foundCorrectChild; // sue me
-
-			} else if (key == currentNode->keys_[i]) {
-				return std::make_pair(this, i); // stop looking
-			}
-		}
-
-		// if we make it here then value is greater than everything in node. Next node is to the right.
-		currentNode = currentNode->children_[currentNode->num_keys_].get();
-
-	foundCorrectChild:
-		assert (currentNode != nullptr); // property of TwoFourTree - internal nodes must have num_keys + 1 children
-		continue;
+	std::pair<Node*, int> iter { this, -1 };
+	while (!iter.first->isLeaf()) {
+		iter = iter.first->traverse_step(key);
+		if (iter.second != -1)
+			return iter; // found key
 	}
 
-	for (int i=0; i < currentNode->num_keys_; i++)
-		if (key == currentNode->keys_[i])
-			return std::make_pair(currentNode, i);
-
-	return std::make_pair(currentNode, doesntContain);
+	// if we reach here then iter.first is a leaf node
+	// final check to see if we can find the key
+	iter.second = iter.first->getKeyIndex(key);
+	return iter;
 }
 
 template<class K, class C, class A>
