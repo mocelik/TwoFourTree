@@ -266,6 +266,8 @@ std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>
 	assert(this == root.get()); // for now...
 
 	auto r = findWithRemove(value); // returns the leaf node and index (which should be r.first->num_keys_-1 UNLESS value was already in leaf)
+	if (r.first == nullptr || r.second == -1) // doesn't exist
+		return r;
 	assert(r.first->isLeaf());
 	assert(r.first->num_keys_ > 1 || r.first == root.get());
 	r.first->extractValue(r.second);
@@ -319,7 +321,8 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 	assert (original_key_location.first == nullptr && original_key_location.second == -1);
 
 	original_key_location = std::make_pair(traverse_iter.first, traverse_iter.first->getKeyIndex(key));
-	assert(original_key_location.second != -1);
+	if (original_key_location.second == -1) // key doesn't exist
+		return std::make_pair(nullptr, -1);
 
 	// Now the key is found.
 	// We need to keep traversing until we get to the predecessor node

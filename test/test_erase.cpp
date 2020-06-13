@@ -280,6 +280,19 @@ TEST_CASE( "Erase - sequential", "[erase][shrink]" ) {
 	REQUIRE(tree.validate());
 }
 
+TEST_CASE("Erase nonexistent", "[erase]") {
+	const int numTests = 10;
+	tft::TwoFourTree<int> tree;
+
+	for (int i = 0; i < numTests; i++)
+		tree.insert(std::move(i));
+
+	tree.erase(-1);
+	tree.erase(11);
+	tree.erase(5);
+	tree.erase(5);
+}
+
 /**
  * Stress test
  */
