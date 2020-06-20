@@ -126,7 +126,7 @@ public:
 
 		friend TwoFourTree<Key,Compare,Allocator>;
 	private:
-		const_iterator(Node * node, int idx) : node_(node), idx_(idx) {}
+		const_iterator(const Node * node, int idx) : node_(node), idx_(idx) {}
 		const_iterator(std::pair<Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
 		const_iterator(std::pair<const Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
 		const Node *node_ { nullptr };
@@ -298,7 +298,8 @@ public:
 		bool isLargestChild() const;
 		bool containsKey(const Key& k);
 		std::pair<Node*, int> findKey(const Key &key); // TODO: return const Node* or make private
-		std::pair<const Node*, int> findLargest() const;
+		const_iterator getEndIter() const;
+		const_iterator getBeginIter() const;
 
 		std::pair<const Node*, int> getSuccessor(int to_index) const;
 		std::pair<const Node*, int> getPredecessor(int to_index) const;
@@ -405,9 +406,9 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// the maximum may be in the same node or it may have moved to a neighbour
 		// search for it starting from the parent to ensure the correct node is found
 		if (pr.first->getParent() != nullptr) {
-			end_iterator_ = iterator(pr.first->getParent()->findLargest()) + 1;
+			end_iterator_ = pr.first->getParent()->getEndIter();
 		} else {
-			end_iterator_ = iterator(pr.first->findLargest()) + 1;
+			end_iterator_ = pr.first->getEndIter();
 		}
 
 		return std::make_pair(iterator(pr), true);
@@ -454,16 +455,31 @@ typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crend() 
 	return const_reverse_iterator(begin_iterator_);
 }
 
-
+// TODO: get begin and end iters faster
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::iterator pos){
-	Node * node = const_cast<Node*> (pos.node_); // this cast is safe, otherwise caller couldn't call this function
-	return iterator(root_->removeValue(*pos, root_)); // TODO: fix efficiency to get bottom value from iterator?
+	auto rc = iterator(root_->removeValue(*pos, root_));
+	if (root_) {
+		begin_iterator_ = root_->getBeginIter();
+		end_iterator_ = root_->getEndIter();
+	} else {
+		begin_iterator_ = iterator();
+		end_iterator_ = iterator();
+	}
+	return rc;
 }
 
+// TODO: get begin and end iters faster
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
 	root_->removeValue(key, root_);
+	if (root_) {
+		begin_iterator_ = root_->getBeginIter();
+		end_iterator_ = root_->getEndIter();
+	} else {
+		begin_iterator_ = iterator();
+		end_iterator_ = iterator();
+	}
 	return 1; // TODO keep track of size and return it here
 }
 

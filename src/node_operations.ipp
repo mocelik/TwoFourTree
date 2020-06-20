@@ -543,6 +543,7 @@ typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::rightSibling() {
 	return parent_->children_[getMyChildIdx() + 1].get();
 }
 
+// TODO: cleanup, remove node_, start using the getMyChildIdx
 template<class Key, class C, class A>
 std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::getSuccessor(int to_index) const {
 	assert(0 <= to_index && to_index < num_keys_);
@@ -701,7 +702,6 @@ bool TwoFourTree<K,C,A>::Node::isLeaf() const {
 	return !children_[0];
 }
 
-
 template<class  K, class C, class A>
 bool TwoFourTree<K,C,A>::Node::containsKey (const K& k) {
 	for (int i=0; i < num_keys_; i++)
@@ -716,13 +716,19 @@ const typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::getParent ()
 }
 
 template<class  K, class C, class A>
-std::pair<const typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::findLargest () const {
-	const Node * node = this;
-	while (!node->isLeaf()) {
-		node = node->children_[num_keys_].get(); // rightmost child
-		assert(node != nullptr);
-	}
-	return std::make_pair(node, node->num_keys_ - 1);
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::Node::getEndIter () const {
+	if (isLeaf())
+		return const_iterator(this, num_keys_);
+	else
+		return children_[num_keys_]->getEndIter(); // rightmost child
+}
+
+template<class  K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::Node::getBeginIter () const {
+	if (isLeaf())
+		return const_iterator(this, 0);
+	else
+		return children_[0]->getBeginIter(); // leftmost child
 }
 
 } /* namespace tft */
