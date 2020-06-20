@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <chrono>
 
-TEST_CASE( "Simple Insert", "[insert]" ) {
+TEST_CASE( "Insert single node", "[insert]" ) {
 
 	tft::TwoFourTree<int> tree;
 
@@ -34,6 +34,8 @@ TEST_CASE( "Simple Insert", "[insert]" ) {
 	CHECK(!tree.insert(30).second);
 	CHECK(!tree.insert(40).second);
 	CHECK(!tree.insert(20).second);
+
+	REQUIRE(tree.validate());
 }
 
 /**
@@ -82,6 +84,7 @@ TEST_CASE( "Insert with Single Overflow", "[insert][overflow]" ) {
 		REQUIRE(tree.contains(it));
 	}
 
+	REQUIRE(tree.validate());
 }
 
 
@@ -145,11 +148,10 @@ TEST_CASE( "Insert with Cascaded Overflow", "[insert][overflow]" ) {
 		REQUIRE(tree.contains(it));
 	}
 
-	// Verifies all children have correct parents
 	REQUIRE(tree.validate());
 }
 
-TEST_CASE( "Insert - Random add check", "[insert][overflow]" ) {
+TEST_CASE( "Insert - Stress test with random adds", "[insert][overflow]" ) {
 	const int numTests = 100000; // 100k
 	std::unordered_set<int> rands( numTests ); // need set to remove duplicates
 	for (int i = 0; i < numTests; i++)

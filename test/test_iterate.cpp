@@ -20,7 +20,7 @@
  * Used tree:
  *     [ 1, 2, 3 ]
  */
-TEST_CASE( "Simple Iterate", "[iterate][insert]" ) {
+TEST_CASE( "Iterate within a node", "[iterate][insert]" ) {
 
 	tft::TwoFourTree<int> tree;
 
@@ -133,7 +133,7 @@ TEST_CASE ("Iterate to multiple neighbours", "[iterate][insert]") {
  */
 TEST_CASE("Iterate after erase", "[iterate][insert][erase]") {
 
-	const int num_tests = 10;
+	const int num_tests = 5000;
 	tft::TwoFourTree<int> tree;
 
 	for (int i = 0; i < num_tests; i++)
@@ -142,7 +142,6 @@ TEST_CASE("Iterate after erase", "[iterate][insert][erase]") {
 	SECTION("Valid iterators after begin removed") {
 		for (int i =0; i < num_tests-1; i++) {
 			tree.erase(i);
-			REQUIRE(tree.validate());
 			auto begin_iter = tree.begin();
 			auto find_first = tree.find((i+1));
 			CHECK(begin_iter == find_first);
@@ -157,7 +156,6 @@ TEST_CASE("Iterate after erase", "[iterate][insert][erase]") {
 	SECTION("Valid iterators after ending removed") {
 		for (int i=num_tests-1; i >0;  i--) {
 			tree.erase(i);
-			REQUIRE(tree.validate());
 
 			auto end_iter = tree.end();
 			REQUIRE(*(end_iter-1) == i-1);
@@ -173,7 +171,6 @@ TEST_CASE("Iterate after erase", "[iterate][insert][erase]") {
 		CHECK(tree.end() == tree.begin());
 		CHECK(tree.rend() == tree.rbegin());
 	}
-
 }
 
 /**
