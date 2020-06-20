@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <chrono>
 
-TEST_CASE( "Simple erase", "[erase]" ) {
+TEST_CASE( "Erase values in single node", "[erase]" ) {
 
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
@@ -49,7 +49,7 @@ TEST_CASE( "Simple erase", "[erase]" ) {
 	CHECK(!tree.contains(30));
 }
 
-TEST_CASE( "Erase single empty node", "[erase]" ) {
+TEST_CASE( "Erase last value in tree", "[erase]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.erase(20);
@@ -77,6 +77,8 @@ TEST_CASE( "Erase with transfer left", "[erase][transferFromLeft]" ) {
 	CHECK(tree.contains(20));
 	CHECK(tree.contains(33));
 	CHECK(tree.contains(52));
+
+	REQUIRE(tree.validate());
 }
 
 /**
@@ -99,6 +101,8 @@ TEST_CASE( "Erase transfer right", "[erase][transferFromRight]" ) {
 	CHECK(tree.contains(52));
 	CHECK(tree.contains(76));
 	CHECK(tree.contains(82));
+
+	REQUIRE(tree.validate());
 }
 
 /**
@@ -167,6 +171,8 @@ TEST_CASE( "Erase fusion", "[erase][fusion]" ) {
 		CHECK(tree.contains(76));
 		CHECK(tree.contains(80));
 	}
+
+	REQUIRE(tree.validate());
 }
 
 /**
@@ -206,6 +212,8 @@ TEST_CASE( "Erase fusion root", "[erase][fusion]" ) {
 	CHECK(tree.contains(0));
 	CHECK(tree.contains(1));
 	CHECK(tree.contains(2));
+
+	REQUIRE(tree.validate());
 }
 
 
@@ -219,7 +227,7 @@ TEST_CASE( "Erase fusion root", "[erase][fusion]" ) {
  *
  * Verify that erasing 30, 40 and 50 works
  */
-TEST_CASE( "Erase internal", "[erase][internal][swap]" ) {
+TEST_CASE( "Erase values in internal nodes", "[erase][internal][swap]" ) {
 	tft::TwoFourTree<int> tree;
 
 	// order is very important to get the specified tree
@@ -256,7 +264,7 @@ TEST_CASE( "Erase internal", "[erase][internal][swap]" ) {
 	REQUIRE(tree.validate());
 }
 
-TEST_CASE( "Erase - sequential", "[erase][shrink]" ) {
+TEST_CASE( "Erase multi level tree with shrink", "[erase][shrink]" ) {
 	const int numTests = 10;
 	tft::TwoFourTree<int> tree;
 
@@ -280,7 +288,7 @@ TEST_CASE( "Erase - sequential", "[erase][shrink]" ) {
 	REQUIRE(tree.validate());
 }
 
-TEST_CASE("Erase nonexistent", "[erase]") {
+TEST_CASE("Erase nonexistent value", "[erase]") {
 	const int numTests = 10;
 	tft::TwoFourTree<int> tree;
 
@@ -291,12 +299,14 @@ TEST_CASE("Erase nonexistent", "[erase]") {
 	tree.erase(11);
 	tree.erase(5);
 	tree.erase(5);
+
+	REQUIRE(tree.validate());
 }
 
 /**
  * Stress test
  */
-TEST_CASE( "Erase - stress test", "[erase][insert]" ) {
+TEST_CASE( "Erase - Stress test", "[erase][insert]" ) {
 
 	const int numTests = 50000;
 
