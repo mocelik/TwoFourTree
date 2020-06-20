@@ -126,7 +126,7 @@ public:
 
 		friend TwoFourTree<Key,Compare,Allocator>;
 	private:
-		const_iterator(Node * node, int idx) : node_(node), idx_(idx) {}
+		const_iterator(const Node * node, int idx) : node_(node), idx_(idx) {}
 		const_iterator(std::pair<Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
 		const_iterator(std::pair<const Node *, int> pair) : node_(pair.first), idx_(pair.second) {}
 		const Node *node_ { nullptr };
@@ -294,18 +294,19 @@ public:
 		Node() = default;
 		bool isFull() const;
 		bool isLeaf() const;
-		Node* getParent() const;
+		const Node* getParent() const;
 		bool isLargestChild() const;
 		bool containsKey(const Key& k);
-		std::pair<Node*, int> findKey(const Key &key);
-		std::pair<const Node*, int> findLargest() const;
+		std::pair<Node*, int> findKey(const Key &key); // TODO: return const Node* or make private
+		const_iterator getEndIter() const;
+		const_iterator getBeginIter() const;
 
 		std::pair<const Node*, int> getSuccessor(int to_index) const;
 		std::pair<const Node*, int> getPredecessor(int to_index) const;
 
+		// TODO: return a const Node*
 		std::pair<Node*, int> addValue(Key&& value, std::unique_ptr<Node> &root);
-		Key extractValue(int index);
-		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
+		std::pair<const Node*, int> removeValue(const Key& value, std::unique_ptr<Node> &root);
 
 		// debug
 		void print() const;
@@ -321,6 +322,25 @@ public:
 	private:
 		std::pair<Node*, int> getSuccessor(int to_index);
 		std::pair<Node*, int> getPredecessor(int to_index);
+		int getMyChildIdx() const;
+		Node * leftSibling();
+		Node * rightSibling();
+
+		Node* makeThreeNode();
+		std::pair<Node*,int> traverse_step(const Key& looking_for_key);
+		int getKeyIndex(const Key& key);
+		Node* transferFromRight();
+		Node* transferFromLeft();
+		Node* fusion();
+		Node* shrink();
+
+
+
+
+		Key extractValue(int index);
+		std::pair<Node*,int> findWithRemove(const Key& key);
+
+		std::pair<Node*, int> addValueOverflow(Key &&key, std::unique_ptr<Node> &root);
 
 		explicit Node(Node *parent) :
 				parent_(parent) {
@@ -386,9 +406,9 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		// the maximum may be in the same node or it may have moved to a neighbour
 		// search for it starting from the parent to ensure the correct node is found
 		if (pr.first->getParent() != nullptr) {
-			end_iterator_ = iterator(pr.first->getParent()->findLargest()) + 1;
+			end_iterator_ = pr.first->getParent()->getEndIter();
 		} else {
-			end_iterator_ = iterator(pr.first->findLargest()) + 1;
+			end_iterator_ = pr.first->getEndIter();
 		}
 
 		return std::make_pair(iterator(pr), true);
@@ -435,6 +455,43 @@ typename TwoFourTree<K,C,A>::const_reverse_iterator TwoFourTree<K,C,A>::crend() 
 	return const_reverse_iterator(begin_iterator_);
 }
 
+// TODO: get begin and end iters faster
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::iterator pos){
+	auto rc = iterator(root_->removeValue(*pos, root_));
+	if (root_) {
+		begin_iterator_ = root_->getBeginIter();
+		end_iterator_ = root_->getEndIter();
+	} else {
+		begin_iterator_ = iterator();
+		end_iterator_ = iterator();
+	}
+	return rc;
+}
+
+// TODO: get begin and end iters faster
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTree::key_type &key){
+	root_->removeValue(key, root_);
+	if (root_) {
+		begin_iterator_ = root_->getBeginIter();
+		end_iterator_ = root_->getEndIter();
+	} else {
+		begin_iterator_ = iterator();
+		end_iterator_ = iterator();
+	}
+	return 1; // TODO keep track of size and return it here
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) const {
+	return const_iterator(root_->findKey(key));
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) {
+	return const_iterator(root_->findKey(key));
+}
 
 } // namespace tft
 

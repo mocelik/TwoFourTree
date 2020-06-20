@@ -38,6 +38,7 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
 		allNodes.pop_front();
 		node = check.second;
 
+		// Check if the parent/child relationships are consistent
 		if (check.first != check.second->parent_) {
 			rc = false;
 			std::cout << "parent of [" << check.second->getString() << "] doesn't have correct parent.\n";
@@ -53,10 +54,55 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
 				std::cout << check.second->parent_->getString() << "\n";
 		}
 
-		for (int i = 0; i < node->num_keys_+1; i++) {
-			if (node->children_[i]) {
-				allNodes.push_back(std::make_pair(node,node->children_[i].get()));
+		// verify the internal contents are sorted
+		for (int i=1; i < node->num_keys_; i++) {
+			if (node->keys_[i-1] > node->keys_[i]) {
+				rc = false;
+				std::cout << "node keys out of order! " << node->keys_[i-1] << " is left of " << node->keys_[i] << std::endl;
+				std::cout << *this << std::endl;
 			}
+		}
+
+		// Count the number of children in the node
+		// For N keys in a node there should be N+1 children (except for leaf nodes)
+		// Also check to make sure the children contain either bigger or smaller values,
+		// depending on which child it is
+		// While we're traversing we also add each child to the list of nodes to be traversed
+		int num_children = 0;
+		for (int i = 0; i < node->num_keys_; i++) { // First N children should have values smaller than keys_[i]
+			if (node->children_[i]) {
+				const Node *child = node->children_[i].get();
+				if (child->keys_[child->num_keys_-1] > node->keys_[i]) {
+					rc = false;
+					std::cout << "child to left has key greater than key ("
+							<< child->keys_[child->num_keys_ - 1] << " > "
+							<< node->keys_[i] << ")\n";
+				}
+				allNodes.push_back(std::make_pair(node,node->children_[i].get()));
+				++num_children;
+			}
+		}
+		if (node->children_[node->num_keys_]) { // Last (Nth) child should have value bigger than keys_[max]
+			const Node *child = node->children_[node->num_keys_].get();
+			if (child->keys_[0] < node->keys_[node->num_keys_-1]){
+				rc = false;
+				std::cout << "rightmost child has key less than my key ("
+						<< child->keys_[0] << " < "
+						<< node->keys_[node->num_keys_-1] << ")\n";
+			}
+			allNodes.push_back(std::make_pair(node,child));
+			++num_children;
+		}
+
+		// verify correct number of children
+		if (!node->isLeaf() && num_children != node->num_keys_ + 1) {
+			std::cout << "number of keys and children mismatch.\n";
+			std::cout << "Node contents = [" << node->getString() << "], num_keys = " << node->num_keys_ << ", #children (" << num_children <<"): \n";
+			for (int i = 0; i < num_children; i++) {
+				std::cout << node->children_[i]->getString() << "   ";
+			}
+			std::cout << "\n";
+			rc = false;
 		}
 	} // end loop
 	return rc;
@@ -117,7 +163,7 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 		}
 
 		if (node == &null_node) {
-			ss << "null:";
+			ss << "_:";
 			continue;
 		}
 
