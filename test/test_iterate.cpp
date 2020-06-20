@@ -129,6 +129,54 @@ TEST_CASE ("Iterate to multiple neighbours", "[iterate][insert]") {
 }
 
 /**
+ * Test the iterators after erasing values
+ */
+TEST_CASE("Iterate after erase", "[iterate][insert][erase]") {
+
+	const int num_tests = 10;
+	tft::TwoFourTree<int> tree;
+
+	for (int i = 0; i < num_tests; i++)
+		tree.insert(std::move(i));
+
+	SECTION("Valid iterators after begin removed") {
+		for (int i =0; i < num_tests-1; i++) {
+			tree.erase(i);
+			REQUIRE(tree.validate());
+			auto begin_iter = tree.begin();
+			auto find_first = tree.find((i+1));
+			CHECK(begin_iter == find_first);
+		}
+
+		tree.erase(num_tests-1);
+
+		CHECK(tree.begin() == tree.end());
+		CHECK(tree.rbegin() == tree.rend());
+	}
+
+	SECTION("Valid iterators after ending removed") {
+		for (int i=num_tests-1; i >0;  i--) {
+			tree.erase(i);
+			REQUIRE(tree.validate());
+
+			auto end_iter = tree.end();
+			REQUIRE(*(end_iter-1) == i-1);
+
+			auto rbegin_it = tree.rbegin();
+			REQUIRE(*rbegin_it == i-1);
+		}
+
+		auto end_iter = tree.end();
+		tree.erase(0);
+
+		CHECK(end_iter != tree.end());
+		CHECK(tree.end() == tree.begin());
+		CHECK(tree.rend() == tree.rbegin());
+	}
+
+}
+
+/**
  * Stress test
  */
 TEST_CASE( "Iterate to multiple neighbours and parents", "[iterate][insert]" ) {
