@@ -393,6 +393,31 @@ bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
 	return (pr.first != nullptr && pr.second != -1);
 }
 
+// TODO need to create templated version of findKey  and pass this on there
+template<class K, class C, class A>
+template <class FakeKey>
+bool TwoFourTree<K,C,A>::contains(const FakeKey& key) const {
+	if (!root_)
+		return false;
+	return true;
+//	std::pair<Node*, int> pr = root_->findKey(key);
+//	return (pr.first != nullptr && pr.second != -1);
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::count(const K &key) const {
+	return contains(key) ? 1 : 0;
+}
+
+// note: This depends on the contains template which isn't implemented yet
+template<class K, class C, class A>
+template<class FakeKey>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::count(const FakeKey &key) const {
+	return contains<FakeKey>(key) ? 1 : 0;
+}
+
+
+
 /**
  * Inserts a value into the tree
  */
