@@ -485,12 +485,20 @@ typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTr
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) const {
-	return const_iterator(root_->findKey(key));
+	auto rc = root_->findKey(key);
+	if (rc.second == -1)
+		return end_iterator_;
+	else
+		return const_iterator(rc);
 }
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) {
-	return const_iterator(root_->findKey(key));
+	auto rc = root_->findKey(key);
+	if (rc.second == -1)
+		return end_iterator_;
+	else
+		return const_iterator(rc);
 }
 
 } // namespace tft
