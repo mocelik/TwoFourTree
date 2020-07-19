@@ -334,6 +334,9 @@ public:
 		Node* fusion();
 		Node* shrink();
 
+		// defined in node_operations.ipp
+		void tryPrintAllFromParent();
+
 
 
 

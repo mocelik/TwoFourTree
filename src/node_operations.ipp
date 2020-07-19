@@ -11,7 +11,22 @@
 #ifndef SRC_NODE_OPERATIONS_IPP_
 #define SRC_NODE_OPERATIONS_IPP_
 
+#define VERBOSITY 0
+#define LOGENTRY { if (VERBOSITY == 1) std::cout << __FUNCTION__ << std::endl; }
+#define LOG(str, val) { if (VERBOSITY == 1) std::cout << __FUNCTION__ << ": " << str << val << std::endl; }
+
 namespace tft {
+
+template <class K, class C, class A>
+void TwoFourTree<K, C, A>::Node::tryPrintAllFromParent() {
+	if (VERBOSITY < 1)
+		return;
+	Node *node = this;
+	while (node->parent_)
+		node = node->parent_;
+	node->printAll();
+
+}
 
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value, std::unique_ptr<Node> &root) {
@@ -265,6 +280,7 @@ std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>
 		const Key& value, std::unique_ptr<Node>& root) {
 	assert(this == root.get()); // for now...
 
+	LOG("removing ", value);
 	auto r = findWithRemove(value); // returns the leaf node and index (which should be r.first->num_keys_-1 UNLESS value was already in leaf)
 	if (r.first == nullptr || r.second == -1) // doesn't exist
 		return r;
@@ -305,63 +321,91 @@ int TwoFourTree<K,C,A>::Node::getKeyIndex(const K& key){
 template<class Key, class C, class A>
 std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::findWithRemove(
 		const Key& key) {
-
-	std::pair<Node*, int> original_key_location { nullptr, -1 };
+	LOG("finding and removing ", key);
+	std::pair<Node*, int> key_location { nullptr, -1 };
 
 	// traverse the tree until the key is found
 	// note that makeThreeNode is intentionally not called on *this
-	auto traverse_iter = this->traverse_step(key);
-	while (!traverse_iter.first->isLeaf() && traverse_iter.second == -1) { // first is the node, second is false if traverse succeeded
-		traverse_iter.first = traverse_iter.first->makeThreeNode();
-		traverse_iter = traverse_iter.first->traverse_step(key);
+	{
+		auto traverse_iter = this->traverse_step(key);
+		while (!traverse_iter.first->isLeaf() && traverse_iter.second == -1) { // first is the node, second is false if traverse succeededt);
+			traverse_iter.first = traverse_iter.first->makeThreeNode();
+			traverse_iter = traverse_iter.first->traverse_step(key);
+		}
+		if (traverse_iter.first->parent_ != nullptr) { // if not root
+			traverse_iter.first = traverse_iter.first->makeThreeNode();
+		}
+		assert (key_location.first == nullptr && key_location.second == -1);
+
+		key_location = std::make_pair(traverse_iter.first, traverse_iter.first->getKeyIndex(key));
 	}
-	if (traverse_iter.first->parent_ != nullptr) // if not root
-		traverse_iter.first = traverse_iter.first->makeThreeNode();
-
-	assert (original_key_location.first == nullptr && original_key_location.second == -1);
-
-	original_key_location = std::make_pair(traverse_iter.first, traverse_iter.first->getKeyIndex(key));
-	if (original_key_location.second == -1) // key doesn't exist
+	if (key_location.second == -1) // key doesn't exist
 		return std::make_pair(nullptr, -1);
+
+	LOG("key is in node: ", *key_location.first);
+	LOG("key is at index: ", key_location.second);
 
 	// Now the key is found.
 	// We need to keep traversing until we get to the predecessor node
 	// Then we swap the key with the predecessor, and return the predecessor location
 
-	if (original_key_location.first->isLeaf()) {
-		return original_key_location;
+	if (key_location.first->isLeaf()) {
+		LOG("key node is leaf, hurray!", "");
+		return key_location;
 	}
 
-	auto pred = original_key_location.first->getPredecessor(original_key_location.second);
-	pred.first = pred.first->makeThreeNode();
-	pred.second = pred.first->num_keys_ - 1;
+	Node * predecessor= key_location.first->children_[key_location.second].get();
+	while (true) {
+		predecessor = predecessor->makeThreeNode();
 
-	// TODO: optimize...
-	// current solution always checks if makeThreeNode moved the key down to the predecessor node
-	// if it isn't, we should be able to move to a new while loop that doesn't check for that anymore
-	while (!pred.first->isLeaf()) {
-		pred = pred.first->getPredecessor(pred.second);
-		pred.first = pred.first->makeThreeNode();
-		if (pred.first->getKeyIndex(key) == -1)
-			pred.second = pred.first->num_keys_ - 1;
-		else {
-			pred.second = pred.first->getKeyIndex(key);
-			original_key_location = pred;
+		auto idx = predecessor->getKeyIndex(key);
+		if (idx != -1) {
+			LOG("The key was moved during the makeThreeNode. It is now in the node: ", *predecessor);
+			key_location = std::make_pair(predecessor, idx);
+
+			if (predecessor->isLeaf()) {
+				return key_location;
+			} else {
+				predecessor = predecessor->children_[idx].get();
+			}
+		} else { // repeat same loop except without the index check anymore
+
+			/**
+			 * The parent (which is the key_location) might have had the key switch indices when
+			 * predecessor->makeThreeNode was called, so update that first
+			 */
+			assert(key_location.first == predecessor->parent_);
+			assert(predecessor->parent_->getKeyIndex(key) != -1);
+			key_location.second = predecessor->parent_->getKeyIndex(key);
+
+			LOG("No longer checking to see if the key will be moved during makeThreeNode calls, starting from: ", *predecessor);
+			LOG("Last known key location is in node: ", *key_location.first);
+			LOG("                          at index: ", key_location.second);
+
+			while (!predecessor->isLeaf()) {
+				predecessor = predecessor->children_[predecessor->num_keys_].get();
+				predecessor = predecessor->makeThreeNode();
+			}
+
+			predecessor = predecessor->makeThreeNode();
+
+			std::swap(predecessor->keys_[predecessor->num_keys_ - 1],
+					key_location.first->keys_[key_location.second]);
+
+
+
+			return std::make_pair(predecessor, predecessor->num_keys_-1);
 		}
-	}
-
-	int key_idx = pred.first->getKeyIndex(key);
-	if (key_idx != -1) {
-		return std::make_pair(pred.first, key_idx);
-	} else {
-		std::swap(pred.first->keys_[pred.second],
-				original_key_location.first->keys_[original_key_location.second]);
-		return pred;
 	}
 }
 
+/**
+ * Returns *this except in cases where *this is destroyed, in which case it returns the node
+ * to which the keys in *this were transferred
+ */
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
+	LOG("", *this);
 	if (num_keys_ != 1)
 		return this;
 	assert(parent_ != nullptr);
@@ -384,7 +428,7 @@ typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromRight() {
-
+	LOGENTRY;
 	int my_idx = getMyChildIdx();
 	std::unique_ptr < Node > &right = parent_->children_[my_idx + 1];
 
@@ -409,7 +453,7 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromRight(
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromLeft() {
-
+	LOGENTRY;
 	int my_idx = getMyChildIdx();
 	std::unique_ptr < Node > &left = parent_->children_[my_idx - 1];
 
@@ -434,6 +478,7 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromLeft()
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
+	LOGENTRY;
 	if ( parent_->num_keys_ < 2) {
 		std::cout << "fusion failed. cannot steal value from parent because it only has one.\n";
 		return this;
@@ -441,6 +486,7 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 
 	int my_idx = getMyChildIdx();
 	if (my_idx > 0) { // prefer to fuse with left
+		LOG("fuse will destroy ", *this);
 		auto &left = parent_->children_[my_idx - 1];
 		left->keys_[1] = std::move(parent_->keys_[my_idx-1]);
 		left->keys_[2] = std::move(keys_[0]);
@@ -461,10 +507,12 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 		--parent_->num_keys_;
 		left->num_keys_ = 3;
 
+		LOG("fuse destroyed node ", *this);
 		// Warning: *this will be destroyed
 		return left.get();
 	} else { // forced to fuse with right
 		auto right = std::move(parent_->children_[my_idx + 1]);
+		LOG("fuse will destroy ", *right);
 
 		keys_[1] = std::move(parent_->keys_[my_idx]);
 		keys_[2] = std::move(right->keys_[0]);
@@ -490,6 +538,7 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::shrink() {
+	LOGENTRY;
 	assert(parent_->parent_ == nullptr); // assert parent is root
 
 	std::unique_ptr<Node> right, left; // one of these contains *this

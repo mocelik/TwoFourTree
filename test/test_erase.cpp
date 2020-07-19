@@ -337,20 +337,9 @@ TEST_CASE( "Erase cascaded random", "[erase][shrink]") {
 	SECTION("Remove at random") {
 		auto random = randomizeSerial(numTests);
 
-
-		tree.erase(15);
-		REQUIRE(!tree.contains(15));
-
 		for (const auto &it : random) {
-
-			std::cout << "tree before erasing:\n";
-			std::cout << tree.getString();
-			std::cout << "\nTrying to erase value: " << it <<  std::endl;
-
 			tree.erase(it);
 			REQUIRE(!tree.contains(it));
-
-			std::cout << "Erased! Validating...\n";
 			REQUIRE(tree.validate());
 		}
 	}
