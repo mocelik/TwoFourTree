@@ -327,19 +327,27 @@ public:
 		}
 
 	private:
+		std::pair<Node*,int> traverse_step(const Key& looking_for_key);
 		std::pair<Node*, int> getSuccessor(int to_index);
 		std::pair<Node*, int> getPredecessor(int to_index);
+
 		int getMyChildIdx() const;
+		int getKeyIndex(const Key& key);
 		Node * leftSibling();
 		Node * rightSibling();
 
-		Node* makeThreeNode();
-		std::pair<Node*,int> traverse_step(const Key& looking_for_key);
-		int getKeyIndex(const Key& key);
-		Node* transferFromRight();
-		Node* transferFromLeft();
-		Node* fusion();
-		Node* shrink();
+		/**
+		 * Methods called as part of erase/remove
+		 * The process of fixing an underflow may delete the underflowed object
+		 * The caller should replace their handle on the object with the return value
+		 *
+		 * @returns the node containing the values in *this before the method was called
+		 */
+		[[nodiscard]] Node* resolveUnderflow();
+		[[nodiscard]] Node* transferFromRight();
+		[[nodiscard]] Node* transferFromLeft();
+		[[nodiscard]] Node* fusion();
+		[[nodiscard]] Node* shrink();
 
 		void tryPrintAllFromParent(int verbosity = 0);
 

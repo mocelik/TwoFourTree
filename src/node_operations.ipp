@@ -315,15 +315,15 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 	std::pair<Node*, int> key_location { nullptr, -1 };
 
 	// traverse the tree until the key is found
-	// note that makeThreeNode is intentionally not called on *this
+	// note that resolveUnderflow is intentionally not called on *this
 	{
 		auto traverse_iter = this->traverse_step(key);
 		while (!traverse_iter.first->isLeaf() && traverse_iter.second == -1) { // first is the node, second is false if traverse succeededt);
-			traverse_iter.first = traverse_iter.first->makeThreeNode();
+			traverse_iter.first = traverse_iter.first->resolveUnderflow();
 			traverse_iter = traverse_iter.first->traverse_step(key);
 		}
 		if (traverse_iter.first->parent_ != nullptr) { // if not root
-			traverse_iter.first = traverse_iter.first->makeThreeNode();
+			traverse_iter.first = traverse_iter.first->resolveUnderflow();
 		}
 		assert (key_location.first == nullptr && key_location.second == -1);
 
@@ -346,14 +346,14 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 
 	Node * predecessor= key_location.first->children_[key_location.second].get();
 	while (true) {
-		predecessor = predecessor->makeThreeNode();
+		predecessor = predecessor->resolveUnderflow();
 
 		auto idx = predecessor->getKeyIndex(key);
 		if (idx != -1) {
-			LOG("The key was moved during the makeThreeNode. It is now in the node: ", *predecessor);
+			LOG("The key was moved during the resolveUnderflow. It is now in the node: ", *predecessor);
 			key_location = std::make_pair(predecessor, idx);
 
-			if (predecessor->isLeaf()) {
+			if (key_location.first->isLeaf()) {
 				return key_location;
 			} else {
 				predecessor = predecessor->children_[idx].get();
@@ -362,27 +362,25 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 
 			/**
 			 * The parent (which is the key_location) might have had the key switch indices when
-			 * predecessor->makeThreeNode was called, so update that first
+			 * predecessor->resolveUnderflow was called, so update that first
 			 */
 			assert(key_location.first == predecessor->parent_);
 			assert(predecessor->parent_->getKeyIndex(key) != -1);
 			key_location.second = predecessor->parent_->getKeyIndex(key);
 
-			LOG("No longer checking to see if the key will be moved during makeThreeNode calls, starting from: ", *predecessor);
+			LOG("No longer checking to see if the key will be moved during resolveUnderflow calls, starting from: ", *predecessor);
 			LOG("Last known key location is in node: ", *key_location.first);
 			LOG("                          at index: ", key_location.second);
 
 			while (!predecessor->isLeaf()) {
 				predecessor = predecessor->children_[predecessor->num_keys_].get();
-				predecessor = predecessor->makeThreeNode();
+				predecessor = predecessor->resolveUnderflow();
 			}
 
-			predecessor = predecessor->makeThreeNode();
+			predecessor = predecessor->resolveUnderflow();
 
 			std::swap(predecessor->keys_[predecessor->num_keys_ - 1],
 					key_location.first->keys_[key_location.second]);
-
-
 
 			return std::make_pair(predecessor, predecessor->num_keys_-1);
 		}
@@ -394,7 +392,7 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
  * to which the keys in *this were transferred
  */
 template<class K, class C, class A>
-typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::resolveUnderflow() {
 	LOG("", *this);
 	if (num_keys_ != 1)
 		return this;
