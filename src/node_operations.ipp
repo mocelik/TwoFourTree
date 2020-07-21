@@ -11,22 +11,12 @@
 #ifndef SRC_NODE_OPERATIONS_IPP_
 #define SRC_NODE_OPERATIONS_IPP_
 
+// Currently only VERBOSITY levels 0 and 1 are supported
 #define VERBOSITY 0
-#define LOGENTRY { if (VERBOSITY == 1) std::cout << __FUNCTION__ << std::endl; }
-#define LOG(str, val) { if (VERBOSITY == 1) std::cout << __FUNCTION__ << ": " << str << val << std::endl; }
+#define LOGENTRY { if (VERBOSITY >= 1) std::cout << __FUNCTION__ << std::endl; }
+#define LOG(str, val) { if (VERBOSITY >= 1) std::cout << __FUNCTION__ << ": " << str << val << std::endl; }
 
 namespace tft {
-
-template <class K, class C, class A>
-void TwoFourTree<K, C, A>::Node::tryPrintAllFromParent() {
-	if (VERBOSITY < 1)
-		return;
-	Node *node = this;
-	while (node->parent_)
-		node = node->parent_;
-	node->printAll();
-
-}
 
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value, std::unique_ptr<Node> &root) {
@@ -507,7 +497,6 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 		--parent_->num_keys_;
 		left->num_keys_ = 3;
 
-		LOG("fuse destroyed node ", *this);
 		// Warning: *this will be destroyed
 		return left.get();
 	} else { // forced to fuse with right

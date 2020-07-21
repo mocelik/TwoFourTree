@@ -341,11 +341,7 @@ public:
 		Node* fusion();
 		Node* shrink();
 
-		// defined in node_operations.ipp
-		void tryPrintAllFromParent();
-
-
-
+		void tryPrintAllFromParent(int verbosity = 0);
 
 		Key extractValue(int index);
 		std::pair<Node*,int> findWithRemove(const Key& key);

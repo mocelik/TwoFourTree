@@ -227,6 +227,20 @@ std::string TwoFourTree<K,C,A>::const_iterator::getString() const {
 	}
 	return ss.str();
 }
+
+/**
+ * Goes as high up as it can then prints everything below
+ */
+template <class K, class C, class A>
+void TwoFourTree<K, C, A>::Node::tryPrintAllFromParent(int verbosity) {
+	if (verbosity < 1)
+		return;
+	Node *node = this;
+	while (node->parent_)
+		node = node->parent_;
+	node->printAll();
+}
+
 } /* namespace tft */
 
 #endif /* SRC_DEBUG_OPERATIONS_IPP_ */

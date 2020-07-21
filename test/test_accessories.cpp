@@ -111,8 +111,6 @@ TEST_CASE("Accessory: find") {
  * empty should return true if empty, false otherwise
  */
 TEST_CASE("Accessory: empty") {
-	auto values = generateUnique(100);
-
 	tft::TwoFourTree<int> tree;
 	CHECK(tree.empty());
 	tree.insert(std::move(1));
@@ -122,7 +120,7 @@ TEST_CASE("Accessory: empty") {
 }
 
 /**
- * empty should return true if empty, false otherwise
+ * size should be correctly updated on every insert and erase
  */
 TEST_CASE("Accessory: size") {
 	auto values = generateUnique(100);
