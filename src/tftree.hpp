@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <limits>
 
 #include <set>
 #include <deque> // debug / print
@@ -169,14 +170,20 @@ public:
 	/* CAPACITY FUNCTIONS */
 
 	// true if empty, false otherwise
-	[[nodiscard]] bool empty() const noexcept; // c++20
+	[[nodiscard]] bool empty() const noexcept {
+		return size_ == 0;
+	}
 
 	// Returns the number of elements in the container (std::distance(begin(), end()))
-	size_type size() const noexcept;
+	size_type size() const noexcept {
+		return size_;
+	}
 
 	// Returns the maximum number of elements possible due to system or library implementation requirements
 	// std::distance(begin(), end()) for the largest possible container
-	size_type max_size() const noexcept;
+	size_type max_size() const noexcept {
+		return std::numeric_limits<size_type>::max();
+	}
 
 	/* MODIFIER FUNCTIONS */
 
@@ -334,8 +341,7 @@ public:
 		Node* fusion();
 		Node* shrink();
 
-
-
+		void tryPrintAllFromParent(int verbosity = 0);
 
 		Key extractValue(int index);
 		std::pair<Node*,int> findWithRemove(const Key& key);
@@ -352,6 +358,7 @@ public:
 
 	protected:
 	std::unique_ptr<Node> root_;
+	size_type size_ { 0 };
 
 	iterator begin_iterator_;
 	iterator end_iterator_;
@@ -382,6 +389,31 @@ bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
 	return (pr.first != nullptr && pr.second != -1);
 }
 
+// TODO need to create templated version of findKey  and pass this on there
+template<class K, class C, class A>
+template <class FakeKey>
+bool TwoFourTree<K,C,A>::contains(const FakeKey& key) const {
+	if (!root_)
+		return false;
+	return true;
+//	std::pair<Node*, int> pr = root_->findKey(key);
+//	return (pr.first != nullptr && pr.second != -1);
+}
+
+template<class K, class C, class A>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::count(const K &key) const {
+	return contains(key) ? 1 : 0;
+}
+
+// note: This depends on the contains template which isn't implemented yet
+template<class K, class C, class A>
+template<class FakeKey>
+typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::count(const FakeKey &key) const {
+	return contains<FakeKey>(key) ? 1 : 0;
+}
+
+
+
 /**
  * Inserts a value into the tree
  */
@@ -392,6 +424,7 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 		root_.reset(new Node());
 		begin_iterator_ = (root_->addValue(std::move(value), root_));
 		end_iterator_ = begin_iterator_ + 1;
+		++size_;
 		return std::make_pair(begin_iterator_, true);
 	}
 
@@ -411,11 +444,12 @@ std::pair<typename TwoFourTree<K,C,A>::iterator, bool> TwoFourTree<K,C,A>::inser
 			end_iterator_ = pr.first->getEndIter();
 		}
 
+		++size_;
 		return std::make_pair(iterator(pr), true);
 	}
 
 	pr = pr.first->addValue(std::move(value), root_);
-
+	++size_;
 	return std::make_pair(iterator(pr), true);
 }
 
@@ -466,6 +500,7 @@ typename TwoFourTree<K,C,A>::iterator TwoFourTree<K,C,A>::erase(TwoFourTree::ite
 		begin_iterator_ = iterator();
 		end_iterator_ = iterator();
 	}
+	--size_;
 	return rc;
 }
 
@@ -480,17 +515,25 @@ typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::erase(const TwoFourTr
 		begin_iterator_ = iterator();
 		end_iterator_ = iterator();
 	}
-	return 1; // TODO keep track of size and return it here
+	return --size_;
 }
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) const {
-	return const_iterator(root_->findKey(key));
+	auto rc = root_->findKey(key);
+	if (rc.second == -1)
+		return end_iterator_;
+	else
+		return const_iterator(rc);
 }
 
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::find(const K &key) {
-	return const_iterator(root_->findKey(key));
+	auto rc = root_->findKey(key);
+	if (rc.second == -1)
+		return end_iterator_;
+	else
+		return const_iterator(rc);
 }
 
 } // namespace tft
