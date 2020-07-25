@@ -18,6 +18,10 @@
 
 namespace tft {
 
+/**
+ * External interface to add values to the node.
+ * This method will correctly figure out if an overflow occurs and call appropriate functions
+ */
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value, std::unique_ptr<Node> &root) {
 	assert(isLeaf()); // incorrect usage -> find the leaf using findKey
@@ -29,7 +33,13 @@ std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::ad
 	return addValue(std::move(value));
 }
 
-
+/**
+ * Simplest case to add values:
+ *  Add 2 to empty node results in [2]
+ *  Add 3 to [2]		results in [2,3]
+ * 	Add 5 to [2,3] 		results in [2,3,5]
+ * 	Add 2 to [3,5]		resutls in [2,3,5]
+ */
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValue(K&& value) {
 	assert(isLeaf()); // incorrect usage -> find the leaf using findKey
@@ -56,16 +66,18 @@ std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::ad
  * and push the missing 3rd value to the parent
  * Then we put the requested value into either the current node or the newly created one
  *
- * e.g. adding 11 would result in this tree:
+ * e.g. adding 11 to this tree:
  *
  *        [30,                40]
  *       /            |          \
  * [ 13, 15, 17] [33, 35, 37]  [ 43, 45, 47]
  *
- *				becoming:
+ *				changes it to:
  *      [15,         30,        40]
  *     /    |         |          \
  * [11,13] [17]  [33, 35, 37]  [ 43, 45, 47]
+ *
+ * If the parent node is also full then a recursive overflow occurs until eventually the root
  */
 template <class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node *, int> TwoFourTree<K,C,A>::Node::addValueOverflow(K &&value, std::unique_ptr<Node> &root) {
@@ -249,7 +261,13 @@ void TwoFourTree<K,C,A>::Node::overflowRecursive (K&& key, std::unique_ptr<Node>
 	}
 }
 
-
+/**
+ * Removes the value at the provided index, shifts the remaining keys over and updates the size of the node
+ * This should only be called on leaf nodes because it does not move children
+ *
+ * The reason it does not move children is because there must always be num_keys_ + 1 children so extracting a key
+ * must also extract a child for a valid TwoFourTree.
+ */
 template<class Key, class C, class A>
 Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 	assert(index >= 0 && index < num_keys_);
@@ -264,7 +282,15 @@ Key TwoFourTree<Key,C,A>::Node::extractValue(int index) {
 	return std::move(k);
 }
 
-
+/**
+ * This is the external interface to remove values from the tree.
+ *
+ * Important: An Underflow occurs when an attempt is made to extract the only value from a Node.
+ *
+ * A value is removed from a TwoFourTree by traversing down the tree while resolving all possible underflows. This is to guarantee that
+ * a leaf node will still hold a value once a value is extracted from it. If the value to be removed is not in a leaf node then it is
+ * swapped with its predecessor (which is guaranteed to be in a leaf node).
+ */
 template<class Key, class C, class A>
 std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::removeValue(
 		const Key& value, std::unique_ptr<Node>& root) {
@@ -283,10 +309,9 @@ std::pair<const typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>
 /**
  * Logical one step traversal down the tree in search of the specified key.
  *
- * returns a pair<Node*, bool>.
+ * returns a pair<Node*, int>.
  * 	The Node* points to the next node in the direction of key.
- * 	The bool returns true if the key is in the current node, in which case the Node* will be this.
- *
+ * 	The int contains the index of the sought key or -1 if not found
  */
 template<class K, class C, class A>
 std::pair<typename TwoFourTree<K,C,A>::Node*, int>  TwoFourTree<K,C,A>::Node::traverse_step(const K& sought_key){
@@ -308,6 +333,13 @@ int TwoFourTree<K,C,A>::Node::getKeyIndex(const K& key){
 	return -1;
 }
 
+/**
+ * Traverses the tree in search of the key while resolving all underflows along the path
+ *
+ * If the key is found in an internal node the traversal continues towards the predecessor and the predecessor and key are swapped
+ *
+ * Returns the node containing the key and its index
+ */
 template<class Key, class C, class A>
 std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node::findWithRemove(
 		const Key& key) {
@@ -315,15 +347,15 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 	std::pair<Node*, int> key_location { nullptr, -1 };
 
 	// traverse the tree until the key is found
-	// note that makeThreeNode is intentionally not called on *this
+	// note that resolveUnderflow is intentionally not called on *this
 	{
 		auto traverse_iter = this->traverse_step(key);
 		while (!traverse_iter.first->isLeaf() && traverse_iter.second == -1) { // first is the node, second is false if traverse succeededt);
-			traverse_iter.first = traverse_iter.first->makeThreeNode();
+			traverse_iter.first = traverse_iter.first->resolveUnderflow();
 			traverse_iter = traverse_iter.first->traverse_step(key);
 		}
 		if (traverse_iter.first->parent_ != nullptr) { // if not root
-			traverse_iter.first = traverse_iter.first->makeThreeNode();
+			traverse_iter.first = traverse_iter.first->resolveUnderflow();
 		}
 		assert (key_location.first == nullptr && key_location.second == -1);
 
@@ -346,14 +378,14 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 
 	Node * predecessor= key_location.first->children_[key_location.second].get();
 	while (true) {
-		predecessor = predecessor->makeThreeNode();
+		predecessor = predecessor->resolveUnderflow();
 
 		auto idx = predecessor->getKeyIndex(key);
 		if (idx != -1) {
-			LOG("The key was moved during the makeThreeNode. It is now in the node: ", *predecessor);
+			LOG("The key was moved during the resolveUnderflow. It is now in the node: ", *predecessor);
 			key_location = std::make_pair(predecessor, idx);
 
-			if (predecessor->isLeaf()) {
+			if (key_location.first->isLeaf()) {
 				return key_location;
 			} else {
 				predecessor = predecessor->children_[idx].get();
@@ -362,27 +394,25 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 
 			/**
 			 * The parent (which is the key_location) might have had the key switch indices when
-			 * predecessor->makeThreeNode was called, so update that first
+			 * predecessor->resolveUnderflow was called, so update that first
 			 */
 			assert(key_location.first == predecessor->parent_);
 			assert(predecessor->parent_->getKeyIndex(key) != -1);
 			key_location.second = predecessor->parent_->getKeyIndex(key);
 
-			LOG("No longer checking to see if the key will be moved during makeThreeNode calls, starting from: ", *predecessor);
+			LOG("No longer checking to see if the key will be moved during resolveUnderflow calls, starting from: ", *predecessor);
 			LOG("Last known key location is in node: ", *key_location.first);
 			LOG("                          at index: ", key_location.second);
 
 			while (!predecessor->isLeaf()) {
 				predecessor = predecessor->children_[predecessor->num_keys_].get();
-				predecessor = predecessor->makeThreeNode();
+				predecessor = predecessor->resolveUnderflow();
 			}
 
-			predecessor = predecessor->makeThreeNode();
+			predecessor = predecessor->resolveUnderflow(); // TODO why is this here? Haven't we already called it above?
 
 			std::swap(predecessor->keys_[predecessor->num_keys_ - 1],
 					key_location.first->keys_[key_location.second]);
-
-
 
 			return std::make_pair(predecessor, predecessor->num_keys_-1);
 		}
@@ -390,11 +420,19 @@ std::pair<typename TwoFourTree<Key,C,A>::Node*, int>  TwoFourTree<Key,C,A>::Node
 }
 
 /**
- * Returns *this except in cases where *this is destroyed, in which case it returns the node
+ * An underflow is resolved with one of four solutions (in the preferred order below):
+ * 		1. TransferFromLeft (clockwise rotation) occurs when the left sibling has a spare value
+ * 		2. TransferFromRight (counterclockwise rotation) occurs when the right sibling has a spare value
+ * 		3. Fusion occurs when neither sibling has enough values but the parent node does
+ * 		4. Shrink occurs when neither sibling nor parent has enough values (height reduces by one)
+ *
+ * This method determines and calls the appropriate solution.
+ *
+ * Returns this except in cases where *this is destroyed, in which case it returns the node
  * to which the keys in *this were transferred
  */
 template<class K, class C, class A>
-typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
+typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::resolveUnderflow() {
 	LOG("", *this);
 	if (num_keys_ != 1)
 		return this;
@@ -416,6 +454,20 @@ typename TwoFourTree<K,C,A>::Node* TwoFourTree<K,C,A>::Node::makeThreeNode() {
 	return shrink();
 }
 
+/**
+ * Given the following tree:
+ *       [ 2 ]
+ *      /     \
+ *  [ 1 ]     [ 3, 4 ]
+ *
+ *  If this is called on the node containing [1]
+ *  then it will result in this tree:
+ *          [ 3 ]
+ *         /     \
+ *  [ 1, 2 ]     [ 4 ]
+ *
+ *  Children are moved appropriately
+ */
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromRight() {
 	LOGENTRY;
@@ -441,6 +493,20 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromRight(
 	return this;
 }
 
+/**
+ * Given the following tree:
+ *           [ 3 ]
+ *          /      \
+ *  [ 1, 2 ]     [ 4 ]
+ *
+ *  If this is called on the node containing [4]
+ *  then it will result in this tree:
+ *       [ 2 ]
+ *     /      \
+ *  [ 1 ]     [ 3, 4 ]
+ *
+ *  Children are moved appropriately
+ */
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromLeft() {
 	LOGENTRY;
@@ -466,6 +532,18 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::transferFromLeft()
 	return this;
 }
 
+/**
+ * Given the following tree:
+ *       [ 2,  4,  6 ]
+ *      /   |     |   \
+ *  [ 1 ] [ 3 ] [ 5 ] [ 7 ]
+ *
+ *  If this is called on the node containing [7]
+ *  then it will result in this tree:
+ *      [ 2,  4 ]
+ *      /   |   \
+ *  [ 1 ] [ 3 ] [ 5, 6, 7 ]
+ */
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 	LOGENTRY;
@@ -524,7 +602,17 @@ typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::fusion() {
 	}
 }
 
-
+/**
+ * Given the following tree:
+ * 	    [ 1 ]
+ * 	    /   \
+ *  [ 0 ]   [ 2 ]
+ *
+ *  If this is called on the nodes containing [0] or [2]
+ *  then it will result in this tree:
+ *
+ *  [ 0, 1, 2 ]
+ */
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::Node * TwoFourTree<K,C,A>::Node::shrink() {
 	LOGENTRY;

@@ -67,7 +67,7 @@ TEST_CASE( "Erase last value in tree", "[erase]" ) {
  *
  *  Should cause a clockwise rotation so 33 goes up and 52 goes down to the right
  */
-TEST_CASE( "Erase with transfer left", "[erase][transferFromLeft]" ) {
+TEST_CASE( "Erase with transfer from left", "[erase][transferFromLeft]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.insert(52);
@@ -91,7 +91,7 @@ TEST_CASE( "Erase with transfer left", "[erase][transferFromLeft]" ) {
  *
  *  Should cause a counterclockwise rotation so 52 goes down and to the left, 76 goes up
  */
-TEST_CASE( "Erase transfer right", "[erase][transferFromRight]" ) {
+TEST_CASE( "Erase transfer from right", "[erase][transferFromRight]" ) {
 	tft::TwoFourTree<int> tree;
 	tree.insert(20);
 	tree.insert(52);
