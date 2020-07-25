@@ -21,5 +21,5 @@ This is the order in which I plan to implement and test this container
 Finally, I plan to write some benchmarks to compare the performance against well known data types.
 
 ### Remarks
-I initially chose the internal representation of the values inside each node to be a std::array because I thought having consecutive objects close to each other would result in faster code, but I eventually realized that this is a micro-optimization with extreme overhead costs that weigh heavier than the performance boost. In addition, the templated Allocator object could be modified by the caller to manage the heap to produce similar results. I plan on changing this implementation to use a std::list instead.
+I initially chose the internal representation of the values inside each node to be a std::array<T> because I thought having consecutive objects close to each other would result in faster code, but I eventually realized that this is a micro-optimization with extreme overhead costs that weigh heavier than the performance boost. In addition, the templated Allocator object could be modified by the caller to manage the heap to produce similar results. I considered changing it to a std::list<T> but the list will O(n) extra memory. I believe the best option now is to use a std::array<std::unique_ptr<T>>, and I plan on making this change soon.
  
