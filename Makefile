@@ -1,37 +1,38 @@
-.PHONY: all test clean
+.PHONY: all run test clean
 .DEFAULT_GOAL := all
 
 # FLAGS
 CXX := clang++
 CXXFLAGS := -Wall -g -std=c++17
-CXXFLAGS += -MMD
 
 # FOLDERS
-BIN_FOLDER := bin
-TEST_FOLDER := test
-SRC_FOLDER := src
-OBJ_FOLDER := obj
-dummy_make_dirs := $(shell mkdir -p $(BIN_FOLDER) $(OBJ_FOLDER))
+BIN_DIR := ./bin
+TEST_DIR := ./test
+SRC_DIR := ./src
+OBJ_DIR := ./obj
+INC := -I$(SRC_DIR)
+CXXFLAGS += $(INC)
+dummy_make_dirs := $(shell mkdir -p $(BIN_DIR) $(OBJ_DIR))
 
 # EXECUTABLES
-MAIN_EXE := $(BIN_FOLDER)/tft
-TEST_EXE := $(BIN_FOLDER)/testtft
-
-# Test source files
-TEST_FILES := $(wildcard $(TEST_FOLDER)/*.cpp)
-OBJ_FILES := $(patsubst $(TEST_FOLDER)/%.cpp,$(OBJ_FOLDER)/%.o,$(TEST_FILES))
+MAIN_EXE := $(BIN_DIR)/tft
+TEST_EXE := $(BIN_DIR)/testtft
 
 # Main source files
-SRC_FILES :=  $(wildcard $(SRC_FOLDER)/*.cpp)
-SOBJ_FILES := $(patsubst $(SRC_FOLDER)/%.cpp,$(OBJ_FOLDER)/%.o,$(SRC_FILES))
+SRC_FILES :=  $(wildcard $(SRC_DIR)/*.cpp)
+SOBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
+
+# Test source files
+TEST_FILES := $(wildcard $(TEST_DIR)/*.cpp)
+OBJ_FILES := $(patsubst $(TEST_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(TEST_FILES))
 
 # Dependencies
-DEPENDS :=  $(patsubst $(TEST_FOLDER)/%.cpp,$(OBJ_FOLDER)/%.d,$(TEST_FILES))
-DEPENDS +=  $(patsubst $(SRC_FOLDER)/%.cpp,$(OBJ_FOLDER)/%.d,$(SRC_FILES))
+DEPENDS :=  $(patsubst $(TEST_DIR)/%.cpp,$(OBJ_DIR)/%.d,$(TEST_FILES))
+DEPENDS +=  $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.d,$(SRC_FILES))
 
 ###### TARGETS ########
 
-all: build_src build_test
+all: $(MAIN_EXE) $(TEST_EXE)
 
 run:
 	$(MAIN_EXE)
@@ -39,19 +40,19 @@ run:
 test:
 	$(TEST_EXE)
 
-build_src: $(SOBJ_FILES)
+$(MAIN_EXE): $(SOBJ_FILES)
 	$(CXX) $(LDFLAGS) -o $(MAIN_EXE) $^
 
-build_test: $(OBJ_FILES)
+$(TEST_EXE): $(OBJ_FILES)
 	$(CXX) $(LDFLAGS) -o $(TEST_EXE) $^
 
 -include $(DEPENDS)
 
-$(OBJ_FOLDER)/%.o: $(TEST_FOLDER)/%.cpp
+$(OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
 
-$(OBJ_FOLDER)/%.o: $(SRC_FOLDER)/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
 
 clean:
-	rm $(BIN_FOLDER)/* $(OBJ_FOLDER)/*
+	$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
