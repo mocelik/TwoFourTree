@@ -8,7 +8,7 @@
  * 		Testing the erasing functionality of the TwoFourTree
  */
 
-#include "../src/tftree.hpp"
+#include <tftree.hpp>
 #include "catch.hpp"
 
 #include <cstdlib>

@@ -8,7 +8,7 @@
  * 		Temporary file to be updated with some test cases
  */
 
-#include "../src/tftree.hpp"
+#include <tftree.hpp>
 #include "catch.hpp"
 
 #include <cstdlib>

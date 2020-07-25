@@ -12,7 +12,7 @@
  * 			  etc..
  */
 
-#include "../src/tftree.hpp"
+#include <tftree.hpp>
 #include "catch.hpp"
 
 #include "test_utils.hpp"
