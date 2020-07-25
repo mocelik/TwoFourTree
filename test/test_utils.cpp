@@ -15,7 +15,7 @@
 #include <random>
 #include <unordered_set>
 
-std::unordered_set<int> generateUnique(int size, const std::unordered_set<int>& excluding) {
+std::unordered_set<int> generateUnique(std::unordered_set<int>::size_type size, const std::unordered_set<int>& excluding) {
 	std::random_device rd;
 	std::mt19937_64 gen(rd());
 	std::uniform_int_distribution<> distribution;

@@ -72,7 +72,7 @@ typename TwoFourTree<K,C,A>::const_iterator& TwoFourTree<K,C,A>::const_iterator:
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::const_iterator::operator+(TwoFourTree<K,C,A>::size_type s) const {
 	const_iterator rc (*this); // copy ctor
-	for (auto i = 0; i < s; i++)
+	for (TwoFourTree<K,C,A>::size_type i = 0; i < s; i++)
 		++rc;
 	return rc;
 }
@@ -80,7 +80,7 @@ typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::const_iterator::
 template<class K, class C, class A>
 typename TwoFourTree<K,C,A>::const_iterator TwoFourTree<K,C,A>::const_iterator::operator-(TwoFourTree<K,C,A>::size_type s) const {
 	const_iterator rc (*this); // copy ctor
-	for (auto i = 0; i < s; i++)
+	for (TwoFourTree<K,C,A>::size_type i = 0; i < s; i++)
 		--rc;
 	return rc;
 }

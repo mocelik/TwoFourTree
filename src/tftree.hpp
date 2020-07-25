@@ -401,6 +401,7 @@ bool TwoFourTree<Key,C,A>::contains (const Key& key) const{
 template<class K, class C, class A>
 template <class FakeKey>
 bool TwoFourTree<K,C,A>::contains(const FakeKey& key) const {
+	std::cout << "contains (" << key << ") not implemented\n";
 	if (!root_)
 		return false;
 	return true;
