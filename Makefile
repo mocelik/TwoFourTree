@@ -3,7 +3,7 @@
 
 # FLAGS
 CXX := clang++
-CXXFLAGS := -Wall -g -std=c++17
+CXXFLAGS := -Wall -Wextra -g -std=c++17
 
 # FOLDERS
 BIN_DIR := ./bin

@@ -18,7 +18,7 @@
  * Returns an unordered_set containing SIZE unique numbers with a uniform distribution
  * The returned set will not contain any duplicates of the EXCLUDING set
  */
-std::unordered_set<int> generateUnique(int size, const std::unordered_set<int>& excluding = {});
+std::unordered_set<int> generateUnique(std::unordered_set<int>::size_type size, const std::unordered_set<int>& excluding = {});
 
 /** 
  * Returns a vector with random values from 0 to RANGE 
