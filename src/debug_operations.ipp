@@ -12,6 +12,10 @@
 #ifndef SRC_DEBUG_OPERATIONS_IPP_
 #define SRC_DEBUG_OPERATIONS_IPP_
 
+#include <iomanip>
+#include <functional>
+#include <unordered_map>
+
 namespace tft {
 /**
  * Verify all nodes have the correct child-parent relationship
@@ -130,6 +134,7 @@ void TwoFourTree<K,C,A>::Node::printAll() const {
 	std::cout << getStringAll();
 }
 
+#if 0
 template<class K, class C, class A>
 std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
@@ -172,6 +177,174 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 	} // end loop
 
 	ss << std::endl;
+	return ss.str();
+}
+#endif
+
+template<class K, class C, class A>
+std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
+
+	/**
+	 * Struct to track the horizontal displacement of the nodes
+	 * For leaves, end-begin should be equal to the string length + 1
+	 * For internal nodes, begin will be where the first child begins,
+	 * 		and end will be where the last child ends
+	 *
+	 * When printing, leaf nodes will print normally.
+	 * Internal nodes will print at the average of the begin and end locations
+	 */
+	struct location{
+		int begin;
+		int end;
+	};
+
+	std::deque<const Node*> nodes_to_be_printed;
+	std::unordered_map<const Node*, location> offsets;
+
+	std::function<void(const Node*, int)> SetBeginLocation = [&offsets, &SetBeginLocation](const Node* node, int begin) {
+		auto it = offsets.find(node);
+		if (it == offsets.end()) {
+			std::cout << "logic error\n";
+			return;
+		}
+
+		it->second.begin = begin;
+
+		if (node->parent_ != nullptr) {
+			auto myidx = node->getMyChildIdx();
+			if (myidx == 0) {
+				SetBeginLocation(node->parent_, begin);
+			} else {
+				return;
+			}
+		}
+	};
+
+	std::function<void(const Node*, int)> SetEndLocation = [&offsets, &SetEndLocation](const Node *node, int end) {
+		auto it = offsets.find(node);
+		if (it == offsets.end()) {
+			std::cout << "logic error\n";
+			return;
+		}
+
+		it->second.end = end;
+
+		if (node->parent_ != nullptr) {
+			auto myidx = node->getMyChildIdx();
+			if (myidx == node->parent_->num_keys_) {
+				auto whitespace_width = it->second.end - it->second.begin;
+				auto trailing_whitespace_width = whitespace_width / 2
+						- ((node->getString().length() + 1) / 2);
+				SetEndLocation(node->parent_, end - trailing_whitespace_width);
+			} else {
+				return;
+			}
+		}
+	};
+
+	Node end_of_level(nullptr);
+
+	nodes_to_be_printed.push_back(this);
+	nodes_to_be_printed.push_back(&end_of_level);
+
+	int current_offset = 0;
+	while (!nodes_to_be_printed.empty()) {
+		const Node *node = nodes_to_be_printed.front();
+		nodes_to_be_printed.pop_front();
+
+		if (node == &end_of_level) { // when we come across this, we know we reached the end of this line
+			nodes_to_be_printed.push_back(&end_of_level); // put it back in so we know for the next iteration
+			current_offset = 0;
+			if (nodes_to_be_printed.front() == &end_of_level)
+				break; // if there isn't another iteration then we've traversed the entire node
+			else
+				continue;
+		}
+
+		/**
+		 * If we  are a leaf node then recursively set parent horizontal displacements
+		 */
+		if (node->isLeaf()) {
+
+			auto start_offset = current_offset;
+			current_offset +=  node->getString().length() + 1 ; // +1 for space afterwards
+
+			location l;
+			l.begin = start_offset;
+			l.end = current_offset;
+			offsets.emplace(node, l);
+
+			SetBeginLocation(node, start_offset);
+			SetEndLocation(node, current_offset);
+		} else {
+			location l {0,0};
+			offsets.emplace(node, l);
+		}
+
+		for (int i=0; i < node->kMaxNumChildren; i++) {
+			if (node->children_[i]) {
+				nodes_to_be_printed.push_back(node->children_[i].get());
+			}
+		}
+
+	} // end loop
+
+	for (const auto& it : offsets) {
+		std::cout << *it.first << " b: " << it.second.begin << ", e: " << it.second.end << std::endl;
+	}
+	std::cout << "---------------------------------------------------------------------------------\n";
+
+	// Begin the actual printing
+	std::stringstream ss;
+	{
+		nodes_to_be_printed.clear();
+		nodes_to_be_printed.push_back(this);
+		nodes_to_be_printed.push_back(&end_of_level);
+
+		current_offset = 0;
+		while (!nodes_to_be_printed.empty()) {
+			const Node *node = nodes_to_be_printed.front();
+			nodes_to_be_printed.pop_front();
+
+			if (node == &end_of_level) { // when we come across this, we know we reached the end of this line
+				ss << "\n"; // print newline
+				nodes_to_be_printed.push_back(&end_of_level); // put it back in so we know for the next iteration
+				if (nodes_to_be_printed.front() == &end_of_level) // check if there will even be a next iteration
+					break; // if there isn't then we've traversed the entire node
+				else
+					continue;
+			}
+
+			int printed_length = 0;
+			if (node->isLeaf()) {
+				ss << node->getString() << ' ';
+				printed_length += node->getString().length() + 1;
+			} else {
+
+				auto str = node->getString() + ' ';
+				auto strlen = str.length();
+
+				location l = offsets.find(node)->second;
+				unsigned int given_length = l.end - l.begin;
+
+				assert(given_length > strlen);
+
+				ss << std::setw(given_length/2 + strlen/2) << std::right << str << std::setw(given_length/2 - strlen/2) << ' ';
+
+				printed_length = given_length;
+			}
+
+			current_offset += printed_length;
+
+			for (int i = 0; i < node->kMaxNumChildren; i++) {
+				if (node->children_[i])
+					nodes_to_be_printed.push_back(node->children_[i].get());
+			}
+
+		} // end loop
+
+		ss << std::endl;
+	}
 	return ss.str();
 }
 
