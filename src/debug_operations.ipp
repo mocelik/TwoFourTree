@@ -114,7 +114,10 @@ bool TwoFourTree<K,C,A>::Node::validateRelationships() const {
  */
 template<class K, class C, class A>
 std::string TwoFourTree<K,C,A>::getString() const{
-	return root_->getStringAll();
+	if (root_)
+		return root_->getStringAll();
+	else
+		return "";
 }
 
 template<class K, class C, class A>
@@ -131,8 +134,6 @@ template<class K, class C, class A>
 std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
 	Node end_of_level(nullptr);
-	Node null_node(nullptr);
-	Node children_end(nullptr);
 
 	std::stringstream ss;
 
@@ -147,7 +148,6 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
 	nodes_to_be_printed.push_back(this);
 	nodes_to_be_printed.push_back(&end_of_level);
-	nodes_to_be_printed.push_back(&children_end);
 
 	while (!nodes_to_be_printed.empty()) {
 		const Node *node = nodes_to_be_printed.front();
@@ -162,26 +162,13 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 				continue;
 		}
 
-		if (node == &null_node) {
-			ss << "_:";
-			continue;
-		}
-
-		if (node == &children_end) {
-			ss << "|";
-			continue;
-		}
-
-		ss << node->getString();
+		ss << node->getString() << " ";
 
 		for (int i=0; i < node->kMaxNumChildren; i++) {
 			if (node->children_[i])
 				nodes_to_be_printed.push_back(node->children_[i].get());
-			else
-				nodes_to_be_printed.push_back(&null_node);
 		}
 
-		nodes_to_be_printed.push_back(&children_end);
 	} // end loop
 
 	ss << std::endl;
@@ -191,10 +178,18 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 template <class K, class C, class A>
 std::string TwoFourTree<K,C,A>::Node::getString() const {
 	std::stringstream ss;
-	for (int i=0; i < num_keys_-1; i++) {
-		ss <<keys_[i] << ",";
+	if (num_keys_ == 0)
+		return "[]";
+
+	ss << "[" << keys_[0];
+
+	for (int i=1; i < num_keys_-1; i++) {
+		ss << ", " << keys_[i];
 	}
-	ss << keys_[num_keys_-1] << ":";
+	if (num_keys_ > 1)
+		ss <<", " << keys_[num_keys_-1] << "]";
+	else
+		ss << "]";
 	return ss.str();
 }
 
