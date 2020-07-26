@@ -34,10 +34,10 @@ DEPENDS +=  $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.d,$(SRC_FILES))
 
 all: $(MAIN_EXE) $(TEST_EXE)
 
-run:
+run: $(MAIN_EXE)
 	$(MAIN_EXE)
 
-test:
+test: $(TEST_EXE)
 	$(TEST_EXE)
 
 $(MAIN_EXE): $(SOBJ_FILES)
