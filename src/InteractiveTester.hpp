@@ -31,8 +31,7 @@ private:
 
 	void add(const std::string& line);
 	void erase(const std::string& line);
-	void add_multi(const std::string& line);
-	void clear(const std::string& line);
+	void clear();
 
 	TwoFourTree<long> tree_;
 };

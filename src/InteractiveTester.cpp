@@ -103,12 +103,8 @@ void InteractiveTester::erase(const std::string& line){
 	}
 }
 
-
-void InteractiveTester::add_multi(const std::string& line){
-	std::cout << "Entering function: " << __FUNCTION__ << " with line " << line <<std::endl;
-}
-void InteractiveTester::clear(const std::string& line) {
-	std::cout << "Entering function: " << __FUNCTION__ << " with line " << line << std::endl;
+void InteractiveTester::clear() {
+	tree_.clear();
 }
 
 void InteractiveTester::resetTerminal() {
@@ -125,11 +121,11 @@ void InteractiveTester::run() {
 		std::cout << tree_ << std::endl;
 		std::cout << "On the left are commands with their effects on the tree described to the right:" << std::endl
 				<< std::left
-				<< std::setw(instruction_width) << "  add 1 2 3 4" 	<< "adds 1,2,3, and 4" << std::endl
-				<< std::setw(instruction_width) << "  add 0 to 5" 	<< "adds [0, 5)" << std::endl
-				<< std::setw(instruction_width) << "  add random 5" 	<< "adds 5 random numbers " << std::endl
-				<< std::setw(instruction_width) << "  erase 1 2 3" 	<< "erases 1,2 and 3" << std::endl
-				<< std::setw(instruction_width) << "  erase 0 to 5" << "erases [0, 5)" << std::endl
+				<< std::setw(instruction_width) << "  add 1 2 3 4"	<< "adds 1,2,3, and 4" << std::endl
+				<< std::setw(instruction_width) << "  add 0 to 5"	<< "adds [0, 5)" << std::endl
+				<< std::setw(instruction_width) << "  add random 5"	<< "adds 5 random numbers " << std::endl
+				<< std::setw(instruction_width) << "  erase 1 2 3"	<< "erases 1,2 and 3" << std::endl
+				<< std::setw(instruction_width) << "  erase 0 to 5"	<< "erases [0, 5)" << std::endl
 				<< std::setw(instruction_width) << "  clear" 		<< "erases all values from the tree, resetting it" << std::endl
 				<< std::setw(instruction_width) << "  q" 			<< "quit" << std::endl;
 
@@ -162,7 +158,7 @@ void InteractiveTester::run() {
 		} else if (startsWith(line, "erase")) {
 			erase(line);
 		} else if (startsWith(line, "clear")) {
-			clear(line);
+			clear();
 		} else if (line == "q") {
 			return;
 		}
