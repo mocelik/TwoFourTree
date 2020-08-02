@@ -134,53 +134,6 @@ void TwoFourTree<K,C,A>::Node::printAll() const {
 	std::cout << getStringAll();
 }
 
-#if 0
-template<class K, class C, class A>
-std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
-
-	Node end_of_level(nullptr);
-
-	std::stringstream ss;
-
-	/*
-	 * Create a deque to hold the node values
-	 * It contains either:
-	 * 		1. A node with real data
-	 * 		2. A node indicating the end of that level
-	 * 		3. An empty node (e.g. 4th child of node with 2 elements)
-	 */
-	std::deque<const Node*> nodes_to_be_printed;
-
-	nodes_to_be_printed.push_back(this);
-	nodes_to_be_printed.push_back(&end_of_level);
-
-	while (!nodes_to_be_printed.empty()) {
-		const Node *node = nodes_to_be_printed.front();
-		nodes_to_be_printed.pop_front();
-
-		if (node == &end_of_level) { // when we come across this, we know we reached the end of this line
-			ss << "\n"; // print newline
-			nodes_to_be_printed.push_back(&end_of_level); // put it back in so we know for the next iteration
-			if (nodes_to_be_printed.front() == &end_of_level) // check if there will even be a next iteration
-				break; // if there isn't then we've traversed the entire node
-			else
-				continue;
-		}
-
-		ss << node->getString() << " ";
-
-		for (int i=0; i < node->kMaxNumChildren; i++) {
-			if (node->children_[i])
-				nodes_to_be_printed.push_back(node->children_[i].get());
-		}
-
-	} // end loop
-
-	ss << std::endl;
-	return ss.str();
-}
-#endif
-
 template<class K, class C, class A>
 std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
@@ -289,10 +242,10 @@ std::string TwoFourTree<K,C,A>::Node::getStringAll() const {
 
 	} // end loop
 
-	for (const auto& it : offsets) {
-		std::cout << *it.first << " b: " << it.second.begin << ", e: " << it.second.end << std::endl;
-	}
-	std::cout << "---------------------------------------------------------------------------------\n";
+//	for (const auto& it : offsets) {
+//		std::cout << *it.first << " b: " << it.second.begin << ", e: " << it.second.end << std::endl;
+//	}
+//	std::cout << "---------------------------------------------------------------------------------\n";
 
 	// Begin the actual printing
 	std::stringstream ss;
