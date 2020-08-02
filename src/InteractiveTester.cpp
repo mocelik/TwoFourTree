@@ -29,7 +29,15 @@ void InteractiveTester::add(const std::string& line){
 
 	ss >> str;
 	if (str == "random") {
-		std::cout << "unhandled add random";
+		int num_rands;
+		if (!(ss >> num_rands)) {
+			std::cout << "Expected number of random numbers\n";
+			return;
+		}
+
+		auto rands = generateUnique(num_rands);
+		for (const auto& it : rands)
+			tree_.insert(int(it));
 		return;
 	}
 
@@ -44,7 +52,6 @@ void InteractiveTester::add(const std::string& line){
 
 			for (int i = start; i < end; i++)
 				tree_.insert(int(i));
-			return;
 		} else {
 			tree_.insert(int(num));
 			tree_.insert(std::stoi(str));
