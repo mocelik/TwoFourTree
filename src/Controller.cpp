@@ -11,6 +11,7 @@
 #include "Controller.hpp"
 
 #include "tftree.hpp"
+#include "InteractiveTester.hpp"
 
 #include <iostream>
 
@@ -22,6 +23,9 @@ int Controller::start(int argc, char **argv) {
 	for (int i =0; i < argc; i++)
 		std::cout << argv[i] << ' ';
 	std::cout << std::endl;
+
+	InteractiveTester ui;
+	ui.run();
 
 	return 0;
 }
