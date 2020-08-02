@@ -65,8 +65,45 @@ void InteractiveTester::add(const std::string& line){
 }
 
 void InteractiveTester::erase(const std::string& line){
-	std::cout << "Entering function: " << __FUNCTION__ << " with line " << line <<std::endl;
+	std::stringstream ss(line);
+
+	std::string str;
+	ss >> str;
+
+	if (str != "erase")
+		return;
+
+	int first_num;
+	if (!(ss >> first_num)) {
+		std::cout << "Expected a number\n";
+		return;
+	}
+
+	ss >> str;
+	if (str != "to") {
+		tree_.erase(first_num);
+		try {
+			tree_.erase(std::stoi(str));
+		} catch (...) {
+			return;
+		}
+
+		int num;
+		while (ss >> num)
+			tree_.erase(num);
+	} else {
+		int last_num;
+		if (!(ss >> last_num)) {
+			std::cout << "Expected a number\n";
+			return;
+		}
+
+		for (int i= first_num; i < last_num; i++)
+			tree_.erase(i);
+	}
 }
+
+
 void InteractiveTester::add_multi(const std::string& line){
 	std::cout << "Entering function: " << __FUNCTION__ << " with line " << line <<std::endl;
 }
@@ -91,9 +128,9 @@ void InteractiveTester::run() {
 				<< std::setw(instruction_width) << "  add 1 2 3 4" 	<< "adds 1,2,3, and 4" << std::endl
 				<< std::setw(instruction_width) << "  add 0 to 5" 	<< "adds [0, 5)" << std::endl
 				<< std::setw(instruction_width) << "  add random 5" 	<< "adds 5 random numbers " << std::endl
-				<< std::setw(instruction_width) << "  remove 1 2 3" 	<< "removes 1,2 and 3" << std::endl
-				<< std::setw(instruction_width) << "  remove 0 to 5" << "removes [0, 5)" << std::endl
-				<< std::setw(instruction_width) << "  clear" 		<< "removes all values from the tree, resetting it" << std::endl
+				<< std::setw(instruction_width) << "  erase 1 2 3" 	<< "erases 1,2 and 3" << std::endl
+				<< std::setw(instruction_width) << "  erase 0 to 5" << "erases [0, 5)" << std::endl
+				<< std::setw(instruction_width) << "  clear" 		<< "erases all values from the tree, resetting it" << std::endl
 				<< std::setw(instruction_width) << "  q" 			<< "quit" << std::endl;
 
 		std::cout << "Please enter a properly formatted instruction now: ";
