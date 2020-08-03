@@ -421,6 +421,18 @@ typename TwoFourTree<K,C,A>::size_type TwoFourTree<K,C,A>::count(const FakeKey &
 	return contains<FakeKey>(key) ? 1 : 0;
 }
 
+/**
+ * TODO consider offloading deletions to multi-threaded approach
+ */
+template <class K, class C, class A>
+void TwoFourTree<K, C, A>::clear() noexcept {
+	root_.reset(nullptr);
+	size_ = 0;
+	begin_iterator_.idx_ = -1;
+	begin_iterator_.node_ = nullptr;
+	end_iterator_ = begin_iterator_;
+}
+
 
 
 /**
