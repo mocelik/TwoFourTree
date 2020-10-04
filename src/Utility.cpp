@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <random>
 #include <unordered_set>
 
@@ -29,6 +30,11 @@ void trimSpaces(std::string& str) {
 
 bool startsWith(const std::string & string, const std::string& search) {
 	return string.rfind(search, 0) == 0;
+}
+
+void clearTerminal() {
+	std::cout << "\033[2J"; // clear terminal
+	std::cout << "\033[1;1H"; // position cursor at 1:1
 }
 
 } /** namespace tft */

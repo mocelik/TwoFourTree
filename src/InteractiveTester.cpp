@@ -108,13 +108,8 @@ void InteractiveTester::clear() {
 	tree_.clear();
 }
 
-void InteractiveTester::resetTerminal() {
-	std::cout << "\033[2J"; // clear terminal
-	std::cout << "\033[1;1H"; // position cursor at 1:1
-}
-
 void InteractiveTester::run() {
-	resetTerminal();
+	clearTerminal();
 
 	while( true ) {
 
@@ -163,7 +158,7 @@ void InteractiveTester::run() {
 		} else if (line == "q") {
 			return;
 		}
-		resetTerminal();
+		clearTerminal();
 	}
 }
 

@@ -26,6 +26,11 @@ void trimSpaces(std::string &str);
  */
 bool startsWith(const std::string & string, const std::string& search);
 
+/**
+ * Clears the terminal using escape codes
+ */
+void clearTerminal();
+
 } /** namespace tft */
 
 
