@@ -15,8 +15,10 @@ namespace tft {
 
 class Benchmarker {
 public:
-	Benchmarker();
-	virtual ~Benchmarker();
+	Benchmarker() = default;
+	virtual ~Benchmarker() = default;
+
+	void run();
 };
 
 } /* namespace tft */
