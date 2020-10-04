@@ -86,4 +86,26 @@ std::unordered_set<int> generateRandom(size_type size, int min, int max, EDistri
 	}
 }
 
+
+std::ostream& operator<<(std::ostream& os, const EDistribution& dist){
+
+	switch (dist) {
+	case EDistribution::UNIFORM:
+		os << "UNIFORM";
+		return os;
+	case EDistribution::BINOMIAL_20:
+		os << "BINOMIAL_20";
+		return os;
+	case EDistribution::BINOMIAL_50:
+		os << "BINOMIAL_50";
+		return os;
+	case EDistribution::BINOMIAL_80:
+		os << "BINOMIAL_80";
+		return os;
+	default:
+		os << "UNKNOWN_DISTRIBUTION";
+		return os;
+	}
+}
+
 } /* namespace tft */

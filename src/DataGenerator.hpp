@@ -12,6 +12,7 @@
 #define SRC_DATAGENERATOR_HPP_
 
 #include <unordered_set>
+#include <iostream>
 #include <random>
 
 namespace tft {
@@ -23,6 +24,8 @@ enum class EDistribution {
 	BINOMIAL_50,
 	BINOMIAL_80
 };
+
+std::ostream& operator<<(std::ostream&, const EDistribution&);
 
 // Returns the mersenne_twister_engine object used to generate random values
 std::mt19937 generator();
