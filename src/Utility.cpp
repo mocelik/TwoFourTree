@@ -31,18 +31,6 @@ bool startsWith(const std::string & string, const std::string& search) {
 	return string.rfind(search, 0) == 0;
 }
 
-
-std::unordered_set<int> generateUnique(std::unordered_set<int>::size_type size, int min, int max) {
-	static std::mt19937_64 gen((std::random_device()()));
-	std::uniform_int_distribution<> distribution(min, max);
-
-	std::unordered_set<int> rc;
-	while (rc.size() < size) {
-		rc.insert(distribution(gen));
-	}
-	return rc;
-}
-
 } /** namespace tft */
 
 

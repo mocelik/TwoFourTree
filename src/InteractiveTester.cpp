@@ -10,6 +10,7 @@
 
 #include <InteractiveTester.hpp>
 #include <Utility.hpp>
+#include <DataGenerator.hpp>
 
 #include <tftree.hpp>
 
@@ -35,7 +36,7 @@ void InteractiveTester::add(const std::string& line){
 			return;
 		}
 
-		auto rands = generateUnique(num_rands);
+		auto rands = generateRandom(num_rands, 0, 100, EDistribution::UNIFORM);
 		for (const auto& it : rands)
 			tree_.insert(int(it));
 		return;
