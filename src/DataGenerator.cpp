@@ -17,14 +17,9 @@ namespace {
 
 using size_type = std::unordered_set<int>::size_type;
 
-std::mt19937 generator() {
-	static std::mt19937 gen((std::random_device()()));
-	return gen;
-}
-
 template <typename T>
 std::unordered_set<int> generate(T& distrib, size_type size) {
-	auto gen = generator();
+	auto gen = tft::generator();
 	std::unordered_set<int> rc;
 
 	while (rc.size() < size) {
@@ -63,6 +58,10 @@ std::unordered_set<int> randomBinomial(double p, size_type size, int min, int ma
 
 namespace tft {
 
+std::mt19937 generator() {
+	static std::mt19937 gen((std::random_device()()));
+	return gen;
+}
 
 std::unordered_set<int> generateRandom(size_type size, int min, int max, EDistribution dist) {
 	if (static_cast<size_type>(max - min) >= size) {
