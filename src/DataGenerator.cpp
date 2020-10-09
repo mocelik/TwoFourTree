@@ -19,12 +19,13 @@ using size_type = std::unordered_set<int>::size_type;
 
 template <typename T>
 std::unordered_set<int> generate(T& distrib, size_type size) {
-	auto gen = tft::generator();
+	auto& gen = tft::generator();
 	std::unordered_set<int> rc;
 
 	while (rc.size() < size) {
 		rc.insert(distrib(gen));
 	}
+
 	return rc;
 }
 
@@ -58,13 +59,18 @@ std::unordered_set<int> randomBinomial(double p, size_type size, int min, int ma
 
 namespace tft {
 
-std::mt19937 generator() {
+std::mt19937& generator() {
 	static std::mt19937 gen((std::random_device()()));
 	return gen;
 }
 
 std::unordered_set<int> generateRandom(size_type size, int min, int max, EDistribution dist) {
-	if (static_cast<size_type>(max - min) >= size) {
+	if (min > max) {
+		auto tmp = min;
+		min = max;
+		max = tmp;
+	}
+	if (static_cast<size_type>(max - min) <= size) {
 		std::unordered_set<int> rc;
 		int i = min;
 		std::generate_n(std::inserter(rc, rc.begin()), size, [&i]() { return i++; });

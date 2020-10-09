@@ -28,7 +28,7 @@ enum class EDistribution {
 std::ostream& operator<<(std::ostream&, const EDistribution&);
 
 // Returns the mersenne_twister_engine object used to generate random values
-std::mt19937 generator();
+std::mt19937& generator();
 
 /**
  * Returns an unordered_set of randomly generated numbers
