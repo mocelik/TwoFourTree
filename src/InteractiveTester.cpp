@@ -10,6 +10,7 @@
 
 #include <InteractiveTester.hpp>
 #include <Utility.hpp>
+#include <DataGenerator.hpp>
 
 #include <tftree.hpp>
 
@@ -35,7 +36,7 @@ void InteractiveTester::add(const std::string& line){
 			return;
 		}
 
-		auto rands = generateUnique(num_rands);
+		auto rands = generateRandom(num_rands, 0, 100, EDistribution::UNIFORM);
 		for (const auto& it : rands)
 			tree_.insert(int(it));
 		return;
@@ -107,13 +108,8 @@ void InteractiveTester::clear() {
 	tree_.clear();
 }
 
-void InteractiveTester::resetTerminal() {
-	std::cout << "\033[2J"; // clear terminal
-	std::cout << "\033[1;1H"; // position cursor at 1:1
-}
-
 void InteractiveTester::run() {
-	resetTerminal();
+	clearTerminal();
 
 	while( true ) {
 
@@ -162,7 +158,7 @@ void InteractiveTester::run() {
 		} else if (line == "q") {
 			return;
 		}
-		resetTerminal();
+		clearTerminal();
 	}
 }
 

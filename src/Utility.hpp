@@ -27,9 +27,9 @@ void trimSpaces(std::string &str);
 bool startsWith(const std::string & string, const std::string& search);
 
 /**
- * Returns a set of unique numbers
+ * Clears the terminal using escape codes
  */
-std::unordered_set<int> generateUnique(std::unordered_set<int>::size_type size, int min = 0, int max = 100);
+void clearTerminal();
 
 } /** namespace tft */
 

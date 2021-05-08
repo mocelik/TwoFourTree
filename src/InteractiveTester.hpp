@@ -27,8 +27,6 @@ public:
 	void run();
 
 private:
-	void resetTerminal();
-
 	void add(const std::string& line);
 	void erase(const std::string& line);
 	void clear();

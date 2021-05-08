@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <random>
 #include <unordered_set>
 
@@ -31,16 +32,9 @@ bool startsWith(const std::string & string, const std::string& search) {
 	return string.rfind(search, 0) == 0;
 }
 
-
-std::unordered_set<int> generateUnique(std::unordered_set<int>::size_type size, int min, int max) {
-	static std::mt19937_64 gen((std::random_device()()));
-	std::uniform_int_distribution<> distribution(min, max);
-
-	std::unordered_set<int> rc;
-	while (rc.size() < size) {
-		rc.insert(distribution(gen));
-	}
-	return rc;
+void clearTerminal() {
+	std::cout << "\033[2J"; // clear terminal
+	std::cout << "\033[1;1H"; // position cursor at 1:1
 }
 
 } /** namespace tft */
