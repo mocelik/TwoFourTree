@@ -20,7 +20,18 @@
 namespace tft {
 
 int Controller::start(int argc, char **argv) {
+
 	Benchmarker bm;
+	if (argc > 1) {
+		if (std::string(argv[1]) == "-s") {
+			bm.sampleBenchmark();
+			return 0;
+		} else {
+			std::cout << "Usage: " << argv[0] << "[-s]" << std::endl << "-s will run a sample benchmark" << std::endl;
+			return -1;
+		}
+	}
+
 	InteractiveTester ui;
 
 	while (true) {

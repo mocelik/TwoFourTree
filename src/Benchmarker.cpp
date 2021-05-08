@@ -253,18 +253,20 @@ void Benchmarker::sampleBenchmark() {
 
 	auto run([this](EDistribution dist){
 		distrib_ = dist;
+		std::cout << "===================================================" << std::endl;
 		std::cout << "Running test with distribution: " << dist << std::endl;
 		insert();
 		find();
 		erase();
 		clear();
-		std::cout << std::endl << "===================================================" << std::endl;
+		std::cout << std::endl;
 	});
 
 	run(EDistribution::UNIFORM);
 	run(EDistribution::BINOMIAL_20);
 	run(EDistribution::BINOMIAL_50);
 	run(EDistribution::BINOMIAL_80);
+	std::cout << "===================================================" << std::endl;
 }
 
 

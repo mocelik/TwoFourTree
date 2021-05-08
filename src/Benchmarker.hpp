@@ -27,6 +27,7 @@ public:
 	virtual ~Benchmarker() = default;
 
 	void run();
+	void sampleBenchmark();
 
 private:
 	std::vector<int> generateRandom() const;
@@ -42,7 +43,6 @@ private:
 	void erase();
 	void find();
 	void clear();
-	void sampleBenchmark();
 
 	TwoFourTree<int> tree_;
 	std::set<int> set_;
