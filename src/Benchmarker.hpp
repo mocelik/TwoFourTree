@@ -40,7 +40,9 @@ private:
 	void setRange();
 	void insert();
 	void erase();
+	void find();
 	void clear();
+	void sampleBenchmark();
 
 	TwoFourTree<int> tree_;
 	std::set<int> set_;

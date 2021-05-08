@@ -45,11 +45,13 @@ void Benchmarker::run() {
 		printSettings();
 
 		std::cout << "Please choose one of the following options:\n"
+				"z - run a sample benchmark\n"
 				"d - change the random distribution type\n"
 				"s - change the size of the benchmark (number of elements to insert/erase)\n"
 				"r - change the range that elements can be selected from\n"
 				"i - benchmark insertion\n"
 				"e - benchmark erasing\n"
+				"f - benchmark finding\n"
 				"c - clear the tree and set\n"
 				"q - quit\n";
 
@@ -62,7 +64,9 @@ void Benchmarker::run() {
 
 		clearTerminal();
 
-		if (input == "d") {
+		if (input == "z") {
+			sampleBenchmark();
+		} else if (input == "d") {
 			setDistribution();
 		} else if (input == "s") {
 			setSize();
@@ -72,6 +76,8 @@ void Benchmarker::run() {
 			insert();
 		} else if (input == "e") {
 			erase();
+		} else if (input == "f") {
+			find();
 		} else if (input == "c") {
 			clear();
 		} else if (input == "q") {
@@ -157,13 +163,10 @@ void Benchmarker::setRange(){
 void Benchmarker::insert(){
 	auto test_values = generateRandom();
 
-	auto set_size = set_.size();
 	auto std_time = measure([this, &test_values]() {
 		for (const auto& it : test_values)
 			this->set_.insert(int(it));
 	});
-	if (set_size == set_.size())
-		std::cerr << "Set size did not change after insert\n";
 
 	auto tft_time = measure([this, &test_values]() {
 		for (const auto &it : test_values)
@@ -204,6 +207,28 @@ void Benchmarker::erase(){
 	printTimes("Erasing " + std::to_string(toErase.size()) + " elements", std_time, tft_time);
 }
 
+void Benchmarker::find() {
+	auto test_values = generateRandom();
+
+	int num_std_found = 0; // need variable to avoid optimizing out calls
+	auto std_time = measure([this, &test_values, &num_std_found]() {
+
+		for (const auto &it : test_values)
+			num_std_found += set_.count(it);
+	});
+
+	int num_tft_found = 0;
+	auto tft_time = measure([this, &test_values, &num_tft_found]() {
+		for (const auto &it : test_values)
+			num_tft_found += set_.count(it);
+	});
+
+	if (num_std_found != num_tft_found) {
+		std::cerr << "Error - sets don't match" << std::endl;
+	}
+	printTimes("Finding elements", std_time, tft_time);
+}
+
 void Benchmarker::clear(){
 	auto std_time = measure([this]() {
 		set_.clear();
@@ -214,6 +239,32 @@ void Benchmarker::clear(){
 	});
 
 	printTimes("Clearing", std_time, tft_time);
+}
+
+void Benchmarker::sampleBenchmark() {
+	std::cout << "Sample benchmark!\n";
+	std::cout << "Clearing before start...\n";
+	clear();
+
+	bm_size_ = 1000000; // 1 million
+	range_ = 5*bm_size_;
+
+	std::cout << "Testing with " << bm_size_ << " elements in the range 0 to " << range_ << std::endl << std::endl;
+
+	auto run([this](EDistribution dist){
+		distrib_ = dist;
+		std::cout << "Running test with distribution: " << dist << std::endl;
+		insert();
+		find();
+		erase();
+		clear();
+		std::cout << std::endl << "===================================================" << std::endl;
+	});
+
+	run(EDistribution::UNIFORM);
+	run(EDistribution::BINOMIAL_20);
+	run(EDistribution::BINOMIAL_50);
+	run(EDistribution::BINOMIAL_80);
 }
 
 
