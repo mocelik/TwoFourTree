@@ -18,38 +18,31 @@ namespace {
 using size_type = std::unordered_set<int>::size_type;
 
 template <typename T>
-std::unordered_set<int> generate(T& distrib, size_type size) {
-	auto& gen = tft::generator();
-	std::unordered_set<int> rc;
-
-	while (rc.size() < size) {
-		rc.insert(distrib(gen));
-	}
-
+std::vector<int> generate(T& distrib, size_type size) {
+	std::vector<int> rc(size);
+	std::generate(rc.begin(), rc.end(), [&distrib](){ return distrib(tft::generator()); });
 	return rc;
 }
 
-std::unordered_set<int> randomUniform(size_type size, int min, int max) {
-	std::uniform_int_distribution<> distribution(min, max);
-	return generate<>(distribution, size);
+std::vector<int> randomUniform(size_type size, int min, int max) {
+	std::uniform_int_distribution distribution(min, max);
+	return generate(distribution, size);
 }
 
 // binomial only returns positive integers starting from 0
 // so if the start value is non-zero then the set is corrected
-std::unordered_set<int> randomBinomial(double p, size_type size, int min, int max) {
+std::vector<int> randomBinomial(double p, size_type size, int min, int max) {
 	if (min == 0) {
 		std::binomial_distribution<int> distribution(max, p);
-		return generate<>(distribution, size);
+		return generate(distribution, size);
 
 	} else {
 		int range = max - min;
 
-		std::binomial_distribution<int> distribution(range, 0.5);
-		auto skewedSet = generate<>(distribution, size);
+		std::binomial_distribution<int> distribution(range, p);
+		auto rc = generate(distribution, size);
 
-		std::unordered_set<int> rc;
-		for (const auto& skewedValue : skewedSet)
-			rc.insert(skewedValue + min);
+		std::transform(rc.begin(), rc.end(), rc.begin(), [min](int i){return i+min; } );
 
 		return rc;
 	}
@@ -64,14 +57,14 @@ std::mt19937& generator() {
 	return gen;
 }
 
-std::unordered_set<int> generateRandom(size_type size, int min, int max, EDistribution dist) {
+std::vector<int> generateRandom(size_type size, int min, int max, EDistribution dist) {
 	if (min > max) {
 		auto tmp = min;
 		min = max;
 		max = tmp;
 	}
 	if (static_cast<size_type>(max - min) <= size) {
-		std::unordered_set<int> rc;
+		std::vector<int> rc;
 		int i = min;
 		std::generate_n(std::inserter(rc, rc.begin()), size, [&i]() { return i++; });
 		return rc;

@@ -38,7 +38,7 @@ std::mt19937& generator();
  * \param max	The maximum value that a random number should be
  * \param dist	The statistical distribution to choose when generating random numbers
  */
-std::unordered_set<int> generateRandom(std::unordered_set<int>::size_type size, int min, int max, EDistribution dist);
+std::vector<int> generateRandom(std::unordered_set<int>::size_type size, int min, int max, EDistribution dist);
 
 } /* namespace tft */
 
